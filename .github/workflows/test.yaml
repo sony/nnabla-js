@@ -23,7 +23,9 @@ jobs:
         run: |
           pip install nnabla
           python scripts/create_test_nnp.py
-          bash scripts/build_protobuf_file
       - run: npm install
+      - name: Compile protobuf
+        run: |
+          bash scripts/build_protobuf_file
       - run: npm run lint:check
       - run: npm test
