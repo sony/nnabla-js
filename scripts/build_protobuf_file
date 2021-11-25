@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# TODO: download generated proto file
+
+# generate javascript file
+npx pbjs -t static-module -w commonjs -o nnabla_pb.js nnabla.proto
+npx pbts -o nnabla_pb.d.ts nnabla_pb.js
+
+# move to src
+mv nnabla_pb.js src/
+mv nnabla_pb.d.ts src/
