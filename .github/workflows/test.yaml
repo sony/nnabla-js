@@ -13,10 +13,16 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '14'
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Prepare test data
         run: |
           pip install nnabla
           python scripts/create_test_nnp.py
       - run: npm install
-      - run: npm lint:check
+      - run: npm run lint:check
       - run: npm test
