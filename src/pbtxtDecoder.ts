@@ -7,6 +7,14 @@ function checkWhiteSpace(chr: string): boolean {
   return chr === ' ' || chr === '\n';
 }
 
+function snakeToCamel(name: string): string {
+  const camel = name
+    .split('_')
+    .map((s) => s.charAt(0).toUpperCase() + s.substring(1))
+    .join('');
+  return camel.charAt(0).toLowerCase() + camel.substring(1);
+}
+
 class Tokenizer {
   text: string;
 
@@ -99,7 +107,7 @@ function parse(tokenizer: Tokenizer, obj: { [key: string]: any }): { [key: strin
       const [nextToken, nextValue] = tokenizer.advance();
 
       if (nextToken === 'openBrace') {
-        const fieldName = value;
+        const fieldName = snakeToCamel(value);
         const childObj = {};
         parse(tokenizer, childObj);
         if (Object.prototype.hasOwnProperty.call(obj, fieldName)) {
@@ -112,7 +120,7 @@ function parse(tokenizer: Tokenizer, obj: { [key: string]: any }): { [key: strin
           obj[fieldName] = childObj;
         }
       } else if (nextToken === 'colon') {
-        const fieldName = value;
+        const fieldName = snakeToCamel(value);
         const [valueType, rawValue] = tokenizer.advance();
         let fieldValue: string | number = '';
         if (valueType === 'string') {
