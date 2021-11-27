@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "lint:check": "eslint src test --ext ts",
-    "lint:fix": "eslint src test --ext ts --fix"
+    "lint:fix": "eslint src test --ext ts --fix",
+    "format": "prettier --write --ignore-path .gitignore 'src/**/*.ts' 'test/**/*.ts'"
   },
   "repository": {
     "type": "git",
@@ -37,7 +38,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.27.1",
     "jest": "^27.3.1",
-    "prettier": "^2.4.1",
+    "prettier": "^2.5.0",
     "protobufjs": "^6.11.2",
     "ts-jest": "^27.0.7",
     "ts-node": "^10.4.0",

@@ -42,15 +42,17 @@ export default class Executor {
   static fromProtoExecutor(executor: IExecutor, network: Network): Executor {
     const name = getOrThrow<string>(executor.name);
 
-    const inputNames = getAsArrayOrThrow<IDataVariable>(executor.dataVariable)
-      .map((v) => getOrThrow(v.variableName));
-    const outputNames = getAsArrayOrThrow<IOutputVariable>(executor.outputVariable)
-      .map((v) => getOrThrow(v.variableName));
+    const inputNames = getAsArrayOrThrow<IDataVariable>(executor.dataVariable).map((v) =>
+      getOrThrow(v.variableName),
+    );
+    const outputNames = getAsArrayOrThrow<IOutputVariable>(executor.outputVariable).map((v) =>
+      getOrThrow(v.variableName),
+    );
 
     return new Executor(name, network, inputNames, outputNames);
   }
 
-  forward(inputs: {[key: string]: number[]}): {[key: string]: number[]} {
+  forward(inputs: { [key: string]: number[] }): { [key: string]: number[] } {
     // Set input data
     for (const inputKey of Object.keys(inputs)) {
       const variable = this.network.getVariable(inputKey);
@@ -65,7 +67,7 @@ export default class Executor {
     }
 
     // Get output data
-    const output: {[key: string]: number[]} = {};
+    const output: { [key: string]: number[] } = {};
     for (const outputName of this.outputNames) {
       output[outputName] = Array.from(this.network.getVariable(outputName).data);
     }

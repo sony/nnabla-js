@@ -7,14 +7,14 @@ import { getOrThrow, getAsArrayOrThrow } from './utils';
 export default class Network {
   name: string;
 
-  variables: {[key: string]: Variable};
+  variables: { [key: string]: Variable };
 
-  functions: {[key: string]: Function};
+  functions: { [key: string]: Function };
 
   constructor(
     name: string,
-    variables: {[key: string]: Variable},
-    functions: {[key: string]: Function},
+    variables: { [key: string]: Variable },
+    functions: { [key: string]: Function },
   ) {
     this.name = name;
     this.variables = variables;
@@ -25,7 +25,7 @@ export default class Network {
     const name = getOrThrow<string>(network.name);
 
     const variables = getAsArrayOrThrow<IVariable>(network.variable);
-    const variableMapping: {[key: string]: Variable} = {};
+    const variableMapping: { [key: string]: Variable } = {};
     for (const variable of variables) {
       const variableName = getOrThrow<string>(variable.name);
       const variableType = getOrThrow<string>(variable.type);
@@ -38,7 +38,7 @@ export default class Network {
     }
 
     const functions = getAsArrayOrThrow<IFunction>(network.function);
-    const functionMapping: {[key: string]: Function} = {};
+    const functionMapping: { [key: string]: Function } = {};
     for (const func of functions) {
       const functionName = getOrThrow<string>(func.name);
       functionMapping[functionName] = Function.fromProtoFunction(func, variableManager);

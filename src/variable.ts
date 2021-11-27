@@ -13,7 +13,7 @@ export default class Variable {
 
   data: number[];
 
-  outputFrom: IFunction|undefined;
+  outputFrom: IFunction | undefined;
 
   constructor(name: string, shape: number[], data: number[]) {
     this.name = name;
@@ -33,8 +33,9 @@ export default class Variable {
     const name = getOrThrow<string>(variable.name);
 
     // -1 represents batch dimension
-    const shape = getAsArrayOrThrow<number>(variable.shape?.dim as number[])
-      .map((dim) => (dim === -1 ? 1 : dim));
+    const shape = getAsArrayOrThrow<number>(variable.shape?.dim as number[]).map((dim) =>
+      dim === -1 ? 1 : dim,
+    );
 
     let size: number = 1;
     for (const dim of shape) {
@@ -45,7 +46,7 @@ export default class Variable {
     return new Variable(name, shape, data);
   }
 
-  static rand(name: string, shape: (number)[]): Variable {
+  static rand(name: string, shape: number[]): Variable {
     let size: number = 1;
     for (const dim of shape) {
       size *= dim as number;

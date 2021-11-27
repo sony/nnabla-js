@@ -1,14 +1,6 @@
 /* eslint-disable no-param-reassign */
 
-const tokenList = [
-  'fieldName',
-  'string',
-  'number',
-  'openBrace',
-  'closeBrace',
-  'colon',
-  'eof',
-];
+const tokenList = ['fieldName', 'string', 'number', 'openBrace', 'closeBrace', 'colon', 'eof'];
 type Token = typeof tokenList[number];
 
 function checkWhiteSpace(chr: string): boolean {
@@ -95,7 +87,7 @@ class Tokenizer {
   }
 }
 
-function parse(tokenizer: Tokenizer, obj: {[key: string]: any}): {[key: string]: any} {
+function parse(tokenizer: Tokenizer, obj: { [key: string]: any }): { [key: string]: any } {
   while (!tokenizer.finished()) {
     const [token, value] = tokenizer.advance();
 
@@ -122,7 +114,7 @@ function parse(tokenizer: Tokenizer, obj: {[key: string]: any}): {[key: string]:
       } else if (nextToken === 'colon') {
         const fieldName = value;
         const [valueType, rawValue] = tokenizer.advance();
-        let fieldValue: string|number = '';
+        let fieldValue: string | number = '';
         if (valueType === 'string') {
           fieldValue = rawValue;
         } else if (valueType === 'number') {
@@ -148,7 +140,7 @@ function parse(tokenizer: Tokenizer, obj: {[key: string]: any}): {[key: string]:
   return obj;
 }
 
-export default function decodePbtxt(data: string): {[key: string]: any} {
+export default function decodePbtxt(data: string): { [key: string]: any } {
   const tokenizer = new Tokenizer(data);
   return parse(tokenizer, {});
 }

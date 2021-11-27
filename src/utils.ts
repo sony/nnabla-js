@@ -1,4 +1,4 @@
-export function getOrThrow<T>(data: T|undefined|null): T {
+export function getOrThrow<T>(data: T | undefined | null): T {
   if (data === undefined || data === null) {
     throw Error('got undefined variable.');
   } else {
@@ -6,7 +6,7 @@ export function getOrThrow<T>(data: T|undefined|null): T {
   }
 }
 
-export function getAsArrayOrThrow<T>(data: T[]|undefined|null): T[] {
+export function getAsArrayOrThrow<T>(data: T[] | undefined | null): T[] {
   if (data === undefined || data === null) {
     throw Error('got undefined variable.');
   } else {

@@ -5,7 +5,7 @@ import Variable from '../variable';
 export default class ReLu implements FunctionImpl {
   gpu: GPU;
 
-  kernel: IKernelRunShortcut|undefined;
+  kernel: IKernelRunShortcut | undefined;
 
   constructor() {
     this.gpu = new GPU();
@@ -13,10 +13,12 @@ export default class ReLu implements FunctionImpl {
   }
 
   setup(_: Variable[], outputs: Variable[]): void {
-    this.kernel = this.gpu.createKernel(function (x: number[]): number {
-      const value = x[this.thread.x];
-      return value > 0.0 ? value : 0.0;
-    }).setOutput([outputs[0].size()]);
+    this.kernel = this.gpu
+      .createKernel(function (x: number[]): number {
+        const value = x[this.thread.x];
+        return value > 0.0 ? value : 0.0;
+      })
+      .setOutput([outputs[0].size()]);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {
