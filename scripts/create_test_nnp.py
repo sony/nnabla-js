@@ -12,7 +12,7 @@ def main():
 
     # model
     h = x0
-    for depth in range(34):
+    for depth in range(4):
         h = PF.affine(h, 100, name=f"affine{depth}")
         h = F.relu(h)
     y0 = PF.affine(h, 10, name=f"affine{depth+1}")
