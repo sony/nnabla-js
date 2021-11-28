@@ -1,6 +1,8 @@
+import os
 import numpy as np
 import struct
 import zlib
+from PIL import Image
 
 import nnabla as nn
 import nnabla.functions as F
@@ -154,6 +156,14 @@ def main():
 
     # save as nnp
     save("mnist.nnp", contents)
+
+    # save example MNIST images
+    os.makedirs("mnist_images", exist_ok=True)
+    x.d, t.d = data.next()
+    for i in range(10):
+        image = np.reshape(x.d[i], [28, 28])
+        im = Image.fromarray(np.array(image, dtype=np.uint8))
+        im.save(os.path.join("mnist_images", f"sample_{i}.png"))
 
 
 if __name__ == "__main__":

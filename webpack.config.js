@@ -6,6 +6,9 @@ module.exports = {
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist'),
+    library: "NNP",
+    libraryExport: "default",
+    libraryTarget: "umd",
   },
   module: {
     rules: [

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MNIST Example</title>
+</head>
+<body>
+  <h2>Choose NNP</h2>
+  <input type="file" id="nnpFile" />
+  <h2>Choose Image</h2>
+  <input type="file" id="imageFile" />
+  <div>
+    <canvas id="preview" width=28 height=28></canvas>
+  </div>
+  <h2>Classification Result</h2>
+  <p id="result"></p>
+</body>
+<script src="../dist/index.js"></script>
+<script>
+  let nnp = undefined;
+  const image = new Image();
+
+  document.getElementById("nnpFile").addEventListener("change", function (evt) {
+    const file = evt.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function () {
+      NNP.fromNNPData(this.result).then(function(n) {
+        nnp = n;
+        console.log(nnp);
+        console.log(nnp.executors["runtime"]);
+      });
+    };
+    reader.readAsBinaryString(file);
+  }, false);
+
+  document.getElementById("imageFile").addEventListener("change", function (evt) {
+    const file = evt.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      let data = e.target.result;
+      image.src = data;
+    };
+    reader.readAsDataURL(file);
+  }, false);
+
+  image.onload = function(e) {
+    const imageData = createImageData(e.target);
+    document.getElementById("preview").getContext("2d").putImageData(imageData, 0, 0);
+    if (nnp === undefined) {
+      console.log("load NNP first.")
+      document.getElementById("result").innerHTML = "Load NNP first.";
+    } else {
+      const data = convertRGB2Gray(imageData.data);
+      const output = nnp.forward("runtime", {"x0": data});
+      let maxIndex = 0;
+      let maxValue = output["y0"][0];
+      for (let i = 1; i < 10; ++i) {
+        if (output["y0"][i] > maxValue) {
+          maxValue = output["y0"][i];
+          maxIndex = i;
+        }
+      }
+      document.getElementById("result").innerHTML = "class=" + maxIndex;
+    }
+  }
+
+  function createImageData(img) {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return data;
+  }
+
+  function convertRGB2Gray(data) {
+    const ret = [];
+    for (let i = 0; i < 28 * 28; ++i) {
+      const index = i * 4;
+      const r = data[index];
+      const g = data[index + 1];
+      const b = data[index + 2];
+      ret.push(Number((r + g + b) / 3.0));
+    }
+    return ret;
+  }
+</script>

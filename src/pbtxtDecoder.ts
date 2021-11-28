@@ -1,7 +1,16 @@
 /* eslint-disable no-param-reassign */
 import * as nnp from './proto/nnabla_pb';
 
-const tokenList = ['fieldName', 'string', 'number', 'openBrace', 'closeBrace', 'colon', 'eof'];
+const tokenList = [
+  'fieldName',
+  'string',
+  'number',
+  'openBrace',
+  'closeBrace',
+  'colon',
+  'eof',
+  'boolean',
+];
 type Token = typeof tokenList[number];
 
 function checkWhiteSpace(chr: string): boolean {
@@ -56,7 +65,7 @@ class Tokenizer {
     return str;
   }
 
-  readNumberOrFieldName(): string {
+  readDataOrFieldName(): string {
     const startCursor = this.cursor;
     while (!checkWhiteSpace(this.text[this.cursor]) && this.text[this.cursor] !== ':') {
       this.cursor += 1;
@@ -90,9 +99,12 @@ class Tokenizer {
           return ['string', this.readString()];
         default:
           // number of field name
-          value = this.readNumberOrFieldName();
+          value = this.readDataOrFieldName();
           if (/^-?(\d|\.)+$/.test(value)) {
             return ['number', value];
+          }
+          if (value === 'true' || value === 'false') {
+            return ['boolean', value];
           }
           return ['fieldName', value];
       }
@@ -140,11 +152,13 @@ function parse(tokenizer: Tokenizer, obj: any): void {
       } else if (nextToken === 'colon') {
         const fieldName = snakeToCamel(value);
         const [valueType, rawValue] = tokenizer.advance();
-        let fieldValue: string | number = '';
+        let fieldValue: string | number | boolean = '';
         if (valueType === 'string') {
           fieldValue = rawValue;
         } else if (valueType === 'number') {
           fieldValue = Number(rawValue);
+        } else if (valueType === 'boolean') {
+          fieldValue = Boolean(rawValue);
         } else {
           throw Error(`invalid token: ${rawValue} (${valueType}) at line ${tokenizer.lineNo}`);
         }

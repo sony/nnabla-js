@@ -19,7 +19,7 @@ export default class MulScalar implements FunctionImpl {
   setup(_: Variable[], outputs: Variable[]): void {
     this.kernel = this.gpu
       .createKernel(function (x: number[], val: number): number {
-        return x[this.thread.x] / val;
+        return x[this.thread.x] * val;
       })
       .setOutput([outputs[0].size()]);
   }

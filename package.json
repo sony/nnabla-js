@@ -2,7 +2,7 @@
   "name": "nnabla",
   "version": "1.0.0",
   "description": "JavaScript runtime for Neural Network Libraries",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "jest",
     "lint:check": "eslint src test --ext ts",
