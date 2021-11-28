@@ -3,5 +3,6 @@ coverage
 
 src/nnabla_pb.js
 src/nnabla_pb.d.ts
+dist
 
 *.nnp

@@ -2,14 +2,14 @@ import JSZip from 'jszip';
 import { IExecutor, INetwork, IParameter, NNablaProtoBuf } from './nnabla_pb';
 import decodePbtxt from './pbtxtDecoder';
 
-export interface NNP {
+export interface ProtoNNP {
   version: string;
   networks: INetwork[];
   parameters: IParameter[];
   executors: IExecutor[];
 }
 
-export function unzipNNP(data: Uint8Array): Promise<NNP> {
+export function unzipNNP(data: Uint8Array): Promise<ProtoNNP> {
   return new JSZip().loadAsync(data).then(async (zip) => {
     // Extract version number
     let version: string = '';
