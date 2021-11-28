@@ -32,3 +32,4 @@ jobs:
           bash scripts/build_protobuf_file
       - run: npm run lint:check
       - run: npm test
+      - run: npm run build
