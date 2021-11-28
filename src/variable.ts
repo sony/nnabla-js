@@ -1,5 +1,5 @@
-import { IParameter, IVariable } from './nnabla_pb';
-import { getOrThrow, getAsArrayOrThrow } from './utils';
+import { Parameter, Variable as ProtoVariable } from './proto/nnabla_pb';
+import { getAsArrayOrThrow } from './utils';
 
 interface IFunction {
   name: string;
@@ -22,18 +22,18 @@ export default class Variable {
     this.outputFrom = undefined;
   }
 
-  static fromProtoParameter(parameter: IParameter): Variable {
-    const name = getOrThrow<string>(parameter.variableName);
-    const shape = getAsArrayOrThrow<number>(parameter.shape?.dim as number[]);
-    const data = getAsArrayOrThrow<number>(parameter.data);
+  static fromProtoParameter(parameter: Parameter): Variable {
+    const name = parameter.getVariableName();
+    const shape = getAsArrayOrThrow<number>(parameter.getShape()?.getDimList());
+    const data = parameter.getDataList();
     return new Variable(name, shape, data);
   }
 
-  static fromProtoVariable(variable: IVariable): Variable {
-    const name = getOrThrow<string>(variable.name);
+  static fromProtoVariable(variable: ProtoVariable): Variable {
+    const name = variable.getName();
 
     // -1 represents batch dimension
-    const shape = getAsArrayOrThrow<number>(variable.shape?.dim as number[]).map((dim) =>
+    const shape = getAsArrayOrThrow<number>(variable.getShape()?.getDimList()).map((dim) =>
       dim === -1 ? 1 : dim,
     );
 

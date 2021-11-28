@@ -1,5 +1,4 @@
-import { IFunction } from './nnabla_pb';
-import { getOrThrow, getAsArrayOrThrow } from './utils';
+import { Function as ProtoFunction } from './proto/nnabla_pb';
 import Variable from './variable';
 import FunctionImpl from './functions/base';
 import buildFunctionImpl from './functions/builder';
@@ -25,11 +24,11 @@ export default class Function {
     this.impl.forward(this.inputs, this.outputs);
   }
 
-  static fromProtoFunction(protoFunc: IFunction, variableManager: VariableManager): Function {
-    const name = getOrThrow<string>(protoFunc.name);
-    const inputNames = getAsArrayOrThrow<string>(protoFunc.input);
+  static fromProtoFunction(protoFunc: ProtoFunction, variableManager: VariableManager): Function {
+    const name = protoFunc.getName();
+    const inputNames = protoFunc.getInputList();
     const inputVariables = inputNames.map((vname) => variableManager.getVariable(vname));
-    const outputNames = getAsArrayOrThrow<string>(protoFunc.output);
+    const outputNames = protoFunc.getOutputList();
     const outputVariables = outputNames.map((vname) => variableManager.getVariable(vname));
 
     const impl = buildFunctionImpl(protoFunc);

@@ -1,4 +1,4 @@
-import { IParameter } from './nnabla_pb';
+import { Parameter } from './proto/nnabla_pb';
 import Variable from './variable';
 
 export default class VariableManager {
@@ -8,7 +8,7 @@ export default class VariableManager {
     this.variables = variables;
   }
 
-  static fromProtoParameters(parameters: IParameter[]): VariableManager {
+  static fromProtoParameters(parameters: Parameter[]): VariableManager {
     const variables: { [key: string]: Variable } = {};
     for (const parameter of parameters) {
       const variable = Variable.fromProtoParameter(parameter);

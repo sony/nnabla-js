@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign */
+import * as nnp from './proto/nnabla_pb';
 
 const tokenList = ['fieldName', 'string', 'number', 'openBrace', 'closeBrace', 'colon', 'eof'];
 type Token = typeof tokenList[number];
@@ -8,11 +9,21 @@ function checkWhiteSpace(chr: string): boolean {
 }
 
 function snakeToCamel(name: string): string {
-  const camel = name
+  return name
     .split('_')
     .map((s) => s.charAt(0).toUpperCase() + s.substring(1))
     .join('');
-  return camel.charAt(0).toLowerCase() + camel.substring(1);
+}
+
+function convertParamField(name: string): string {
+  return `${name}eter`;
+}
+
+function convertSpecialField(name: string): string {
+  if (name.includes('Relu')) {
+    return name.replace('Relu', 'ReLU');
+  }
+  return name;
 }
 
 class Tokenizer {
@@ -95,12 +106,14 @@ class Tokenizer {
   }
 }
 
-function parse(tokenizer: Tokenizer, obj: { [key: string]: any }): { [key: string]: any } {
+function parse(tokenizer: Tokenizer, obj: any): void {
+  const proto = Object.getPrototypeOf(obj);
+
   while (!tokenizer.finished()) {
     const [token, value] = tokenizer.advance();
 
     if (token === 'eof' || token === 'closeBrace') {
-      return obj;
+      return;
     }
 
     if (token === 'fieldName') {
@@ -108,17 +121,22 @@ function parse(tokenizer: Tokenizer, obj: { [key: string]: any }): { [key: strin
 
       if (nextToken === 'openBrace') {
         const fieldName = snakeToCamel(value);
-        const childObj = {};
-        parse(tokenizer, childObj);
-        if (Object.prototype.hasOwnProperty.call(obj, fieldName)) {
-          if (Array.isArray(obj[fieldName])) {
-            obj[fieldName].push(childObj);
-          } else {
-            obj[fieldName] = [obj[fieldName], childObj];
-          }
+        let childObj: any = {};
+        if (Object.prototype.hasOwnProperty.call(proto, `add${fieldName}`)) {
+          childObj = proto[`add${fieldName}`].call(obj);
         } else {
-          obj[fieldName] = childObj;
+          childObj = proto[`get${fieldName}`].call(obj);
         }
+        if (childObj === undefined) {
+          let typeName = fieldName;
+          if (typeName.endsWith('Param')) {
+            typeName = convertParamField(typeName);
+          }
+          typeName = convertSpecialField(typeName);
+          childObj = new (nnp as any)[typeName]();
+          proto[`set${fieldName}`].call(obj, childObj);
+        }
+        parse(tokenizer, childObj);
       } else if (nextToken === 'colon') {
         const fieldName = snakeToCamel(value);
         const [valueType, rawValue] = tokenizer.advance();
@@ -130,25 +148,19 @@ function parse(tokenizer: Tokenizer, obj: { [key: string]: any }): { [key: strin
         } else {
           throw Error(`invalid token: ${rawValue} (${valueType}) at line ${tokenizer.lineNo}`);
         }
-        if (Object.prototype.hasOwnProperty.call(obj, fieldName)) {
-          if (Array.isArray(obj[fieldName])) {
-            obj[fieldName].push(fieldValue);
-          } else {
-            obj[fieldName] = [obj[fieldName], fieldValue];
-          }
+        if (Object.prototype.hasOwnProperty.call(proto, `add${fieldName}`)) {
+          proto[`add${fieldName}`].call(obj, fieldValue);
         } else {
-          obj[fieldName] = fieldValue;
+          proto[`set${fieldName}`].call(obj, fieldValue);
         }
       } else {
         throw Error(`invalid token: ${nextValue} (${nextToken}) at line ${tokenizer.lineNo}`);
       }
     }
   }
-
-  return obj;
 }
 
-export default function decodePbtxt(data: string): { [key: string]: any } {
+export default function decodePbtxt(data: string, obj: any): void {
   const tokenizer = new Tokenizer(data);
-  return parse(tokenizer, {});
+  parse(tokenizer, obj);
 }

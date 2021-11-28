@@ -1,12 +1,12 @@
 import JSZip from 'jszip';
-import { IExecutor, INetwork, IParameter, NNablaProtoBuf } from './nnabla_pb';
+import { Executor, Network, Parameter, NNablaProtoBuf } from './proto/nnabla_pb';
 import decodePbtxt from './pbtxtDecoder';
 
 export interface ProtoNNP {
   version: string;
-  networks: INetwork[];
-  parameters: IParameter[];
-  executors: IExecutor[];
+  networks: Network[];
+  parameters: Parameter[];
+  executors: Executor[];
 }
 
 export function unzipNNP(data: Uint8Array): Promise<ProtoNNP> {
@@ -21,36 +21,26 @@ export function unzipNNP(data: Uint8Array): Promise<ProtoNNP> {
       });
 
     // Extract network
-    let networks: INetwork[] = [];
-    let executors: IExecutor[] = [];
+    let networks: Network[] = [];
+    let executors: Executor[] = [];
     const networkPromise = zip
       .file('network.nntxt')
       ?.async('string')
       .then((text) => {
-        const decodedObj = decodePbtxt(text);
-        const nnp = NNablaProtoBuf.create(decodedObj);
-
-        if (Array.isArray(nnp.network)) {
-          networks = nnp.network;
-        } else {
-          networks = [nnp.network];
-        }
-
-        if (Array.isArray(nnp.executor)) {
-          executors = nnp.executor;
-        } else {
-          executors = [nnp.executor];
-        }
+        const nnp = new NNablaProtoBuf();
+        decodePbtxt(text, nnp);
+        networks = nnp.getNetworkList();
+        executors = nnp.getExecutorList();
       });
 
     // Extract parameters
-    let parameters: IParameter[] = [];
+    let parameters: Parameter[] = [];
     const paramPromise = zip
       .file('parameter.protobuf')
       ?.async('uint8array')
       .then((byteCode) => {
-        const nnp = NNablaProtoBuf.decode(byteCode);
-        parameters = nnp.parameter;
+        const nnp = NNablaProtoBuf.deserializeBinary(byteCode);
+        parameters = nnp.getParameterList();
       });
 
     await versionPromise;

@@ -2,10 +2,12 @@
 
 # TODO: download generated proto file
 
-# generate javascript file
-npx pbjs -t static-module -w commonjs -o nnabla_pb.js proto/nnabla.proto
-npx pbts -o nnabla_pb.d.ts nnabla_pb.js
+PROTOC_GEN_TS_PATH="node_modules/.bin/protoc-gen-ts"
+OUT_DIR="src"
 
-# move to src
-mv nnabla_pb.js src/
-mv nnabla_pb.d.ts src/
+# generate javascript file
+protoc \
+  --plugin="protoc-gen-ts=${PROTOC_GEN_TS_PATH}" \
+  --js_out="import_style=commonjs,binary:${OUT_DIR}" \
+  --ts_out="${OUT_DIR}" \
+  proto/nnabla.proto

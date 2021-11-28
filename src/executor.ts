@@ -1,8 +1,7 @@
-import { IExecutor, IDataVariable, IOutputVariable } from './nnabla_pb';
+import { Executor as ProtoExecutor } from './proto/nnabla_pb';
 import Function from './function';
 import Network from './network';
 import Variable from './variable';
-import { getOrThrow, getAsArrayOrThrow } from './utils';
 
 function forwardRecursively(leaf: Variable, visited: Function[]): void {
   if (leaf.outputFrom === undefined) {
@@ -39,15 +38,11 @@ export default class Executor {
     this.outputNames = outputNames;
   }
 
-  static fromProtoExecutor(executor: IExecutor, network: Network): Executor {
-    const name = getOrThrow<string>(executor.name);
+  static fromProtoExecutor(executor: ProtoExecutor, network: Network): Executor {
+    const name = executor.getName();
 
-    const inputNames = getAsArrayOrThrow<IDataVariable>(executor.dataVariable).map((v) =>
-      getOrThrow(v.variableName),
-    );
-    const outputNames = getAsArrayOrThrow<IOutputVariable>(executor.outputVariable).map((v) =>
-      getOrThrow(v.variableName),
-    );
+    const inputNames = executor.getDataVariableList().map((v) => v.getVariableName());
+    const outputNames = executor.getOutputVariableList().map((v) => v.getVariableName());
 
     return new Executor(name, network, inputNames, outputNames);
   }

@@ -1,4 +1,4 @@
-import { AffineParameter } from '../../src/nnabla_pb';
+import { AffineParameter } from '../../src/proto/nnabla_pb';
 import Affine from '../../src/functions/affine';
 import Variable from '../../src/variable';
 import { expectClose } from '../testUtils';
@@ -33,8 +33,8 @@ test('test-affine', () => {
   const w = Variable.rand('w', [64, 32]);
   const b = Variable.rand('b', [32]);
   const y = Variable.rand('y', [128, 32]);
-  const param = AffineParameter.create();
-  param.baseAxis = 1;
+  const param = new AffineParameter();
+  param.setBaseAxis(1);
   const affine = new Affine(param);
 
   affine.setup([x, w, b], [y]);

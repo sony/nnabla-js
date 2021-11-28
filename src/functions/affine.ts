@@ -1,11 +1,10 @@
 import { GPU, IKernelRunShortcut } from 'gpu.js';
-import { IAffineParameter } from '../nnabla_pb';
+import { AffineParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import Variable from '../variable';
-import { getOrThrow } from '../utils';
 
 export default class Affine implements FunctionImpl {
-  param: IAffineParameter;
+  param: AffineParameter;
 
   gpu: GPU;
 
@@ -25,7 +24,7 @@ export default class Affine implements FunctionImpl {
 
   oRowSize: number;
 
-  constructor(param: IAffineParameter) {
+  constructor(param: AffineParameter) {
     this.param = param;
     this.gpu = new GPU();
     this.matmulKernel = undefined;
@@ -39,7 +38,7 @@ export default class Affine implements FunctionImpl {
   }
 
   setup(inputs: Variable[], outputs: Variable[]): void {
-    const baseAxis = getOrThrow<number>(this.param.baseAxis as number);
+    const baseAxis = this.param.getBaseAxis();
     this.iColSize = inputs[0].shape[baseAxis];
     this.iRowSize = inputs[0].size() / this.iColSize;
     [this.wRowSize] = inputs[1].shape;

@@ -1,8 +1,7 @@
-import { IFunction, INetwork, IVariable } from './nnabla_pb';
+import { Network as ProtoNetwork } from './proto/nnabla_pb';
 import Function from './function';
 import Variable from './variable';
 import VariableManager from './variableManager';
-import { getOrThrow, getAsArrayOrThrow } from './utils';
 
 export default class Network {
   name: string;
@@ -21,14 +20,14 @@ export default class Network {
     this.functions = functions;
   }
 
-  static fromProtoNetwork(network: INetwork, variableManager: VariableManager): Network {
-    const name = getOrThrow<string>(network.name);
+  static fromProtoNetwork(network: ProtoNetwork, variableManager: VariableManager): Network {
+    const name = network.getName();
 
-    const variables = getAsArrayOrThrow<IVariable>(network.variable);
+    const variables = network.getVariableList();
     const variableMapping: { [key: string]: Variable } = {};
     for (const variable of variables) {
-      const variableName = getOrThrow<string>(variable.name);
-      const variableType = getOrThrow<string>(variable.type);
+      const variableName = variable.getName();
+      const variableType = variable.getType();
       if (variableType === 'Buffer' && !variableManager.hasVariable(variableName)) {
         variableManager.registerVariable(Variable.fromProtoVariable(variable));
       } else if (variableType === 'Parameter' && !variableManager.hasVariable(variableName)) {
@@ -37,10 +36,10 @@ export default class Network {
       variableMapping[variableName] = variableManager.getVariable(variableName);
     }
 
-    const functions = getAsArrayOrThrow<IFunction>(network.function);
+    const functions = network.getFunctionList();
     const functionMapping: { [key: string]: Function } = {};
     for (const func of functions) {
-      const functionName = getOrThrow<string>(func.name);
+      const functionName = func.getName();
       functionMapping[functionName] = Function.fromProtoFunction(func, variableManager);
     }
 

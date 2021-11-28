@@ -26,7 +26,7 @@ export default class NNP {
 
       const executors: { [key: string]: Executor } = {};
       for (const protoExecutor of nnp.executors) {
-        const networkName = getOrThrow<string>(protoExecutor.networkName);
+        const networkName = getOrThrow<string>(protoExecutor.getNetworkName());
         const network = networks[networkName];
         const executor = Executor.fromProtoExecutor(protoExecutor, network);
         executors[executor.name] = executor;

@@ -48,5 +48,5 @@
       }
     }
   },
-  "ignorePatterns": ["node_modules/**", "src/*pb.js", "src/*pb.d.ts"]
+  "ignorePatterns": ["node_modules/**", "src/proto/*pb.js", "src/proto/*pb.d.ts"]
 }

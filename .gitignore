@@ -1,8 +1,8 @@
 node_modules
 coverage
 
-src/nnabla_pb.js
-src/nnabla_pb.d.ts
+src/proto/nnabla_pb.js
+src/proto/nnabla_pb.d.ts
 dist
 
 *.nnp
