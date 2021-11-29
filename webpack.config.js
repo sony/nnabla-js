@@ -1,14 +1,15 @@
 var path = require('path');
 
 module.exports = {
-  mode: "development",
-  entry: "./src/index.ts",
+  mode: 'development',
+  entry: './src/index.ts',
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist'),
-    library: "NNP",
-    libraryExport: "default",
-    libraryTarget: "umd",
+    library: 'NNP',
+    libraryExport: 'default',
+    libraryTarget: 'umd',
+    globalObject: 'this',
   },
   module: {
     rules: [

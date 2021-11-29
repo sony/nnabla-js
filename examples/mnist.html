@@ -13,7 +13,9 @@
     <canvas id="preview" width=28 height=28></canvas>
   </div>
   <h2>Classification Result</h2>
-  <p id="result"></p>
+  <p id="result">Class: </p>
+  <h2>Execution Time</h2>
+  <p id="time">Exection time: </p>
 </body>
 <script src="../dist/index.js"></script>
 <script>
@@ -51,7 +53,11 @@
       document.getElementById("result").innerHTML = "Load NNP first.";
     } else {
       const data = convertRGB2Gray(imageData.data);
+
+      const startTime = performance.now();
       const output = nnp.forward("runtime", {"x0": data});
+      const endTime = performance.now();
+
       let maxIndex = 0;
       let maxValue = output["y0"][0];
       for (let i = 1; i < 10; ++i) {
@@ -60,7 +66,8 @@
           maxIndex = i;
         }
       }
-      document.getElementById("result").innerHTML = "class=" + maxIndex;
+      document.getElementById("result").innerHTML = "Class: " + maxIndex;
+      document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
     }
   }
 
