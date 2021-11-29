@@ -1,5 +1,5 @@
 const fs = require('fs');
-const NNP = require('../dist/index.js');
+const nnabla = require('../dist/index.js');
 
 if (process.argv.length !== 4) {
   throw Error('Usage: node examples/benchmark.js <NNP file> <executor name>');
@@ -9,7 +9,7 @@ const nnpFile = process.argv[2];
 const executorName = process.argv[3];
 
 fs.readFile(nnpFile, (_, data) => {
-  NNP.fromNNPData(data).then((nnp) => {
+  nnabla.NNP.fromNNPData(data).then((nnp) => {
     const executor = nnp.executors[executorName];
     let totalTime = 0.0;
     const inputs = {};

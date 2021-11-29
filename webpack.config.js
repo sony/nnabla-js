@@ -6,7 +6,7 @@ module.exports = {
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist'),
-    library: 'NNP',
+    library: 'nnabla',
     libraryExport: 'default',
     libraryTarget: 'umd',
     globalObject: 'this',
