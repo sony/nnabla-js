@@ -42,6 +42,6 @@ test('test-affine', () => {
 
   const yRef = affineRef(x.data, w.data, b.data, x.shape, w.shape);
   for (let i = 0; i < yRef.length; i += 1) {
-    expectClose(y.data[i], yRef[i], 0.000001);
+    expectClose(y.data[i], yRef[i], 0.00001);
   }
 });

@@ -10,6 +10,10 @@ test('test-powScalar', () => {
   param.setVal(2.0);
   const powScalar = new PowScalar(param);
 
+  for (let i = 0; i < x.size(); i += 1) {
+    x.data[i] += 2.0;
+  }
+
   powScalar.setup([x], [y]);
   powScalar.forward([x], [y]);
 

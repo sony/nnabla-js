@@ -28,13 +28,17 @@ fs.readFile('mnist.nnp', (_, data) => {
 ```
 
 ## build
+`protoc` command must be installed prior to build.
+
 ```
 $ npm install
+$ ./scripts/build_protobuf_file
 $ npm run build
 ```
 
 ## test
 ```
+$ pip install nnabla & python scripts/create_test_nnp.py  # for the first time
 $ npm run lint:fix  # code style check
 $ npm test  # unit tests
 ```
