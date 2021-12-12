@@ -1,5 +1,83 @@
 import { GPU } from 'gpu.js';
 
+export function createPadKernel(
+  gpu: GPU,
+  shape: number[],
+  pad: number[],
+): [(x: number[]) => number[], number[]] {
+  let dataSize = 1;
+  for (let i = 0; i < shape.length - 2; i += 1) {
+    dataSize *= shape[i + 2];
+  }
+
+  const paddedShape = [shape[0], shape[1]];
+  let paddedSize = shape[0] * shape[1];
+  let paddedDataSize = 1;
+  for (let i = 0; i < shape.length - 2; i += 1) {
+    const dim = shape[i + 2] + 2 * pad[i];
+    paddedShape.push(dim);
+    paddedSize *= dim;
+    paddedDataSize *= dim;
+  }
+
+  const padIndexMapping: number[] = [];
+  for (let i = 0; i < paddedDataSize; i += 1) {
+    // Identify index at the padded pixels
+    const index = [];
+    let tmp = paddedDataSize;
+    let cursor = i;
+    for (let j = 0; j < shape.length - 2; j += 1) {
+      tmp /= paddedShape[j + 2];
+      index.push(Math.floor(cursor / tmp));
+      cursor -= Math.floor(cursor / tmp) * tmp;
+    }
+
+    // Check if padded pixel
+    let flag = false;
+    for (let j = 0; j < shape.length - 2; j += 1) {
+      if (index[j] < pad[j] || index[j] >= shape[j + 2] + pad[j]) {
+        flag = true;
+        break;
+      }
+    }
+
+    if (flag) {
+      padIndexMapping.push(-1);
+    } else {
+      let pixIndex = 0;
+      tmp = dataSize;
+      for (let j = 0; j < shape.length - 2; j += 1) {
+        tmp /= shape[j + 2];
+        pixIndex += tmp * (index[j] - pad[j]);
+      }
+      padIndexMapping.push(pixIndex);
+    }
+  }
+
+  const kernel = gpu
+    .createKernel(function (
+      x: number[],
+      _shape: number[],
+      _padIndexMapping: number[],
+      _dataSize: number,
+      _paddedDataSize: number,
+    ): number {
+      const index = _padIndexMapping[this.thread.x % _paddedDataSize];
+      const bcIndex = Math.floor(this.thread.x / _paddedDataSize);
+      if (index === -1) {
+        return 0.0;
+      }
+      return x[bcIndex * _dataSize + index];
+    })
+    .setOutput([paddedSize]);
+
+  function partialKernel(x: number[]): number[] {
+    return kernel(x, shape, padIndexMapping, dataSize, paddedDataSize) as number[];
+  }
+
+  return [partialKernel, paddedShape];
+}
+
 export function createIm2ColKernel(
   gpu: GPU,
   shape: number[],

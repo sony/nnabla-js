@@ -1,7 +1,43 @@
 import { GPU } from 'gpu.js';
 import Variable from '../../src/variable';
-import { createIm2ColKernel } from '../../src/functions/utils';
+import { createPadKernel, createIm2ColKernel } from '../../src/functions/utils';
 import { expectAllClose } from '../testUtils';
+
+function refPad(x: number[], shape: number[], pad: number[]): number[] {
+  const [B, C, H, W] = shape;
+  const [padH, padW] = pad;
+  const y: number[] = [];
+  for (let i = 0; i < B; i += 1) {
+    for (let j = 0; j < C; j += 1) {
+      for (let k = 0; k < H + 2 * padH; k += 1) {
+        for (let l = 0; l < W + 2 * padW; l += 1) {
+          if (k < padH || k >= H + padH || l < padW || l >= W + padW) {
+            y.push(0.0);
+          } else {
+            const index = i * (C * H * W) + j * (H * W) + (k - padH) * W + (l - padW);
+            y.push(x[index]);
+          }
+        }
+      }
+    }
+  }
+  return y;
+}
+
+test('test-pad', () => {
+  const shape = [32, 3, 28, 28];
+  const x = Variable.rand('x', shape);
+  const pad = [2, 2];
+  const gpu = new GPU();
+
+  const [padKernel, outputShape] = createPadKernel(gpu, shape, pad);
+  const y = padKernel(x.data);
+
+  const refOutputShape = [32, 3, 32, 32];
+  const refY = refPad(x.data, shape, pad);
+  expect(outputShape).toEqual(refOutputShape);
+  expectAllClose(y, refY, 0.0001);
+});
 
 function refIm2Col(
   x: number[],
