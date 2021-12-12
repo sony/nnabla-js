@@ -6,39 +6,41 @@ import { expectAllClose } from '../testUtils';
 function refIm2Col(
   x: number[],
   shape: number[],
-  outputShape: number[],
   outHeight: number,
   outWidth: number,
   kernelShape: number[],
   stride: number[],
 ): number[] {
   const [B, C, H, W] = shape;
-  const [, L, , K] = outputShape;
-  const [strideH, strideW] = stride;
-  const y = [...Array(B * C * H * W)].map(() => 0.0);
-  const transposedY = [...Array(B * C * H * W)].map(() => 0.0);
 
-  // (B, C, H, W) -> (B, C, L, K)
+  // (B, C, L, K)
+  const y: number[] = [];
   for (let i = 0; i < B; i += 1) {
     for (let j = 0; j < C; j += 1) {
-      for (let k = 0; k < L; k += 1) {
-        for (let l = 0; l < K; l += 1) {
-          const bOffset = i * C * H * W;
-          const cOffset = j * H * W;
-          const lOffset = W * Math.floor(k / outWidth) * strideH + (k % outWidth) * strideW;
-          const kOffset = W * Math.floor(l / strideW) + l % strideH;
-          y[i * C * L * K + j + L * K + k + K + l] = x[bOffset + cOffset + lOffset + kOffset];
+      for (let k = 0; k < outHeight; k += 1) {
+        for (let l = 0; l < outWidth; l += 1) {
+          const baseIndex = i * (C * H * W) + j * (H * W) + k * stride[0] * W + l * stride[1];
+          for (let m = 0; m < kernelShape[0]; m += 1) {
+            for (let n = 0; n < kernelShape[1]; n += 1) {
+              const index = baseIndex + m * W + n;
+              y.push(x[index]);
+            }
+          }
         }
       }
     }
   }
 
   // (B, C, L, K) -> (B, L, C, K)
+  const L = outHeight * outWidth;
+  const K = kernelShape[0] * kernelShape[1];
+  const transposedY: number[] = [];
   for (let i = 0; i < B; i += 1) {
     for (let j = 0; j < L; j += 1) {
       for (let k = 0; k < C; k += 1) {
         for (let l = 0; l < K; l += 1) {
-          transposedY[i * L * C * K + j * C * K + k * K + l] = y[i * C * L * K + j + L * K + k + K + l];
+          const index = i * (C * L * K) + k * (L * K) + j * K + l;
+          transposedY.push(y[index]);
         }
       }
     }
@@ -59,9 +61,8 @@ test('test-im2col', () => {
   const [im2col, outputShape] = createIm2ColKernel(gpu, shape, kernelShape, stride);
   const y = im2col(x.data);
 
-
   const refOutputShape = [32, outHeight * outWidth, 3, 4];
-  const refY = refIm2Col(x.data, shape, refOutputShape, outHeight, outWidth, kernelShape, stride);
+  const refY = refIm2Col(x.data, shape, outHeight, outWidth, kernelShape, stride);
   expect(outputShape).toEqual(refOutputShape);
   expectAllClose(y, refY, 0.0001);
 });
