@@ -21,9 +21,11 @@ fs.readFile(nnpFile, (_, data) => {
       const start = process.hrtime();
       nnp.forward(executorName, inputs);
       const end = process.hrtime(start);
-      totalTime += end[0] + end[1] / 1000000000;
+      if (i > 0) {
+        totalTime += end[0] + end[1] / 1000000000;
+      }
     }
 
-    console.log('Average execution time: %ds', totalTime / 10.0);
+    console.log('Average execution time: %ds', totalTime / 9.0);
   });
 });
