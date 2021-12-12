@@ -1,7 +1,37 @@
 import { GPU } from 'gpu.js';
 import Variable from '../../src/variable';
-import { createPadKernel, createIm2ColKernel } from '../../src/functions/utils';
+import { createMatmulKernel, createPadKernel, createIm2ColKernel } from '../../src/functions/utils';
 import { expectAllClose } from '../testUtils';
+
+function refMatmul(x: number[], y: number[], xShape: number[], yShape: number[]): number[] {
+  const [xRowSize, xColSize] = xShape;
+  const [, yColSize] = yShape;
+  const output = [...Array(xRowSize * yColSize)].map(() => 0.0);
+  for (let i = 0; i < xRowSize; i += 1) {
+    for (let j = 0; j < yColSize; j += 1) {
+      for (let k = 0; k < xColSize; k += 1) {
+        output[i * yColSize + j] += x[i * xColSize + k] * y[k * yColSize + j];
+      }
+    }
+  }
+  return output;
+}
+
+test('test-matmul', () => {
+  const xShape = [32, 256];
+  const x = Variable.rand('x', xShape);
+  const yShape = [256, 64];
+  const y = Variable.rand('y', yShape);
+  const gpu = new GPU();
+
+  const [matmulKernel, outputShape] = createMatmulKernel(gpu, xShape, yShape);
+  const z = matmulKernel(x.data, y.data);
+
+  const refOutputShape = [32, 64];
+  const refZ = refMatmul(x.data, y.data, xShape, yShape);
+  expect(outputShape).toEqual(refOutputShape);
+  expectAllClose(z, refZ, 0.0001);
+});
 
 function refPad(x: number[], shape: number[], pad: number[]): number[] {
   const [B, C, H, W] = shape;

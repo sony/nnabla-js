@@ -1,5 +1,36 @@
 import { GPU } from 'gpu.js';
 
+export function createMatmulKernel(
+  gpu: GPU,
+  xShape: number[],
+  yShape: number[],
+): [(x: number[], y: number[]) => number[], number[]] {
+  if (xShape.length !== 2) {
+    throw Error(`invalid x shape: ${xShape}`);
+  }
+  if (yShape.length !== 2) {
+    throw Error(`invalid y shape: ${yShape}`);
+  }
+
+  const kernel = gpu
+    .createKernel(function (x: number[], y: number[], xColSize: number, yColSize: number): number {
+      const xRow = Math.floor(this.thread.x / yColSize);
+      const yCol = this.thread.x % yColSize;
+      let output = 0.0;
+      for (let i = 0; i < xColSize; i += 1) {
+        output += x[xRow * xColSize + i] * y[i * yColSize + yCol];
+      }
+      return output;
+    })
+    .setOutput([xShape[0] * yShape[1]]);
+
+  function partialKernel(x: number[], y: number[]): number[] {
+    return kernel(x, y, xShape[1], yShape[1]) as number[];
+  }
+
+  return [partialKernel, [xShape[0], yShape[1]]];
+}
+
 export function createPadKernel(
   gpu: GPU,
   shape: number[],
