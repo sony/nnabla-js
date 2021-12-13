@@ -4,6 +4,8 @@ export function createMatmulKernel(
   gpu: GPU,
   xShape: number[],
   yShape: number[],
+  transposeX: boolean,
+  transposeY: boolean,
 ): [(x: number[], y: number[]) => number[], number[]] {
   if (xShape.length !== 2) {
     throw Error(`invalid x shape: ${xShape}`);
@@ -12,23 +14,59 @@ export function createMatmulKernel(
     throw Error(`invalid y shape: ${yShape}`);
   }
 
+  const outputShape = [];
+  if (transposeX) {
+    outputShape.push(xShape[1]);
+  } else {
+    outputShape.push(xShape[0]);
+  }
+  if (transposeY) {
+    outputShape.push(yShape[0]);
+  } else {
+    outputShape.push(yShape[1]);
+  }
+
   const kernel = gpu
-    .createKernel(function (x: number[], y: number[], xColSize: number, yColSize: number): number {
-      const xRow = Math.floor(this.thread.x / yColSize);
-      const yCol = this.thread.x % yColSize;
+    .createKernel(function (
+      x: number[],
+      y: number[],
+      _xShape: number[],
+      _yShape: number[],
+      _transposeX: boolean,
+      _transposeY: boolean,
+    ): number {
+      const [xRowSize, xColSize] = _xShape;
+      const [yRowSize, yColSize] = _yShape;
+      const xBase = Math.floor(this.thread.x / (_transposeY ? yRowSize : yColSize));
+      const yBase = this.thread.x % (_transposeY ? yRowSize : yColSize);
+      const dim = _transposeX ? xRowSize : xColSize;
       let output = 0.0;
-      for (let i = 0; i < xColSize; i += 1) {
-        output += x[xRow * xColSize + i] * y[i * yColSize + yCol];
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        if (_transposeX) {
+          xValue = x[i * xColSize + xBase];
+        } else {
+          xValue = x[xBase * xColSize + i];
+        }
+
+        let yValue: number = 0.0;
+        if (_transposeY) {
+          yValue = y[yBase * yColSize + i];
+        } else {
+          yValue = y[i * yColSize + yBase];
+        }
+
+        output += xValue * yValue;
       }
       return output;
     })
-    .setOutput([xShape[0] * yShape[1]]);
+    .setOutput([outputShape[0] * outputShape[1]]);
 
   function partialKernel(x: number[], y: number[]): number[] {
-    return kernel(x, y, xShape[1], yShape[1]) as number[];
+    return kernel(x, y, xShape, yShape, transposeX, transposeY) as number[];
   }
 
-  return [partialKernel, [xShape[0], yShape[1]]];
+  return [partialKernel, outputShape];
 }
 
 export function createPadKernel(
@@ -192,12 +230,11 @@ export function createIm2ColKernel(
     k2pixMapping.push(index);
   }
 
-  const outputShape = [shape[0], shape[1], L, K];
+  const outputShape = [shape[0], L, shape[1], K];
   const outputSize = shape[0] * shape[1] * L * K;
   const outputDataSize = L * K;
-  const transposedShape = [shape[0], L, shape[1], K];
 
-  // (B, C, H, W) -> (B, C, L, K)
+  // (B, C, H, W) -> (B, L, C, K)
   const kernel = gpu
     .createKernel(function (
       x: number[],
@@ -207,42 +244,22 @@ export function createIm2ColKernel(
       _k2pixMapping: number[],
       _dataSize: number,
     ): number {
-      const bcIndex = Math.floor(this.thread.x / _outputDataSize);
-      const lkIndex = this.thread.x % _outputDataSize;
-      const lIndex = Math.floor(lkIndex / _outputShape[3]);
-      const kIndex = lkIndex % _outputShape[3];
-
-      return x[_dataSize * bcIndex + _l2pixMapping[lIndex] + _k2pixMapping[kIndex]];
-    })
-    .setOutput([outputSize]);
-
-  // (B, C, L, K) -> (B, L, C, K)
-  const transposeKernel = gpu
-    .createKernel(function (x: number[], _shape: number[]): number {
-      const [, _C, _L, _K] = _shape;
+      const [, _L, _C, _K] = _outputShape;
       let index = this.thread.x;
       const bIndex = Math.floor(index / (_L * _C * _K));
-      index -= bIndex * _L * _C * _K;
+      index -= bIndex * (_L * _C * _K);
       const lIndex = Math.floor(index / (_C * _K));
-      index -= lIndex * _C * _K;
+      index -= lIndex * (_C * _K);
       const cIndex = Math.floor(index / _K);
-      index -= cIndex * _K;
-      const kIndex = index;
-      return x[bIndex * (_C * _L * _K) + cIndex * (_L * _K) + lIndex * _K + kIndex];
+      const kIndex = index % _K;
+
+      return x[_dataSize * (_C * bIndex + cIndex) + _l2pixMapping[lIndex] + _k2pixMapping[kIndex]];
     })
     .setOutput([outputSize]);
 
   function partialKernel(x: number[]): number[] {
-    const col = kernel(
-      x,
-      outputShape,
-      outputDataSize,
-      l2pixMapping,
-      k2pixMapping,
-      dataSize,
-    ) as number[];
-    return transposeKernel(col, outputShape) as number[];
+    return kernel(x, outputShape, outputDataSize, l2pixMapping, k2pixMapping, dataSize) as number[];
   }
 
-  return [partialKernel, transposedShape];
+  return [partialKernel, outputShape];
 }

@@ -27,7 +27,13 @@ export default class Affine implements FunctionImpl {
     const wRowSize = inputs[1].shape[0];
     const wColSize = inputs[1].size() / wRowSize;
 
-    [this.matmulKernel] = createMatmulKernel(this.gpu, [iRowSize, iColSize], [wRowSize, wColSize]);
+    [this.matmulKernel] = createMatmulKernel(
+      this.gpu,
+      [iRowSize, iColSize],
+      [wRowSize, wColSize],
+      false,
+      false,
+    );
 
     if (inputs.length === 3) {
       this.biasKernel = this.gpu

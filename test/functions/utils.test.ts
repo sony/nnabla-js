@@ -3,6 +3,16 @@ import Variable from '../../src/variable';
 import { createMatmulKernel, createPadKernel, createIm2ColKernel } from '../../src/functions/utils';
 import { expectAllClose } from '../testUtils';
 
+function transpose(x: number[], shape: number[]): number[] {
+  const y: number[] = [];
+  for (let i = 0; i < shape[1]; i += 1) {
+    for (let j = 0; j < shape[0]; j += 1) {
+      y.push(x[j * shape[1] + i]);
+    }
+  }
+  return y;
+}
+
 function refMatmul(x: number[], y: number[], xShape: number[], yShape: number[]): number[] {
   const [xRowSize, xColSize] = xShape;
   const [, yColSize] = yShape;
@@ -17,18 +27,34 @@ function refMatmul(x: number[], y: number[], xShape: number[], yShape: number[])
   return output;
 }
 
-test('test-matmul', () => {
-  const xShape = [32, 256];
+test.each([
+  [false, false],
+  [true, false],
+  [false, true],
+  [true, true],
+])('test-matmul', (transposeX: boolean, transposeY: boolean) => {
+  let xShape = transposeX ? [256, 32] : [32, 256];
   const x = Variable.rand('x', xShape);
-  const yShape = [256, 64];
+  let yShape = transposeY ? [64, 256] : [256, 64];
   const y = Variable.rand('y', yShape);
   const gpu = new GPU();
 
-  const [matmulKernel, outputShape] = createMatmulKernel(gpu, xShape, yShape);
+  const [matmulKernel, outputShape] = createMatmulKernel(
+    gpu,
+    xShape,
+    yShape,
+    transposeX,
+    transposeY,
+  );
   const z = matmulKernel(x.data, y.data);
 
+  const xData = transposeX ? transpose(x.data, xShape) : x.data;
+  xShape = transposeX ? [xShape[1], xShape[0]] : xShape;
+  const yData = transposeY ? transpose(y.data, yShape) : y.data;
+  yShape = transposeY ? [yShape[1], yShape[0]] : yShape;
+
   const refOutputShape = [32, 64];
-  const refZ = refMatmul(x.data, y.data, xShape, yShape);
+  const refZ = refMatmul(xData, yData, xShape, yShape);
   expect(outputShape).toEqual(refOutputShape);
   expectAllClose(z, refZ, 0.0001);
 });
