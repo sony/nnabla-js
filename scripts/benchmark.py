@@ -15,20 +15,22 @@ def main():
     if args.gpu is not None:
         ctx = get_extension_context('cudnn', device_id=args.gpu)
         nn.set_default_context(ctx)
+    else:
+        ctx = None
 
-    nnp = load(args.nnp, batch_size=1)
+    nnp = load(args.nnp, batch_size=1, context=None if ctx is None else f"cudnn:{args.gpu}")
 
     executor = nnp.executors[args.runtime]
 
     total_time = 0.0
-    for i in range(10):
+    for i in range(100):
         start_time = time.time()
         executor.forward_target.forward()
         end_time = time.time()
         if i > 0:
             total_time += end_time - start_time
 
-    print(f"Average time: {total_time / 9.0 * 1000.0}ms")
+    print(f"Average time: {total_time / 99.0 * 1000.0}ms")
 
 
 if __name__ == "__main__":

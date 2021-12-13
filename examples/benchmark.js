@@ -17,7 +17,7 @@ fs.readFile(nnpFile, (_, data) => {
       const variable = executor.network.getVariable(inputName);
       inputs[inputName] = [...Array(variable.size())].map(() => Math.random() * 2.0 - 1.0);
     }
-    for (let i = 0; i < 10; ++i) {
+    for (let i = 0; i < 100; ++i) {
       const start = process.hrtime();
       nnp.forward(executorName, inputs);
       const end = process.hrtime(start);
@@ -26,6 +26,6 @@ fs.readFile(nnpFile, (_, data) => {
       }
     }
 
-    console.log('Average execution time: %ds', totalTime / 9.0);
+    console.log('Average execution time: %dms', totalTime / 99.0 * 1000.0);
   });
 });
