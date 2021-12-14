@@ -143,7 +143,7 @@ function refIm2Col(
 test('test-im2col', () => {
   const shape = [32, 3, 28, 28];
   const x = Variable.rand('x', shape);
-  const kernelShape = [2, 2];
+  const kernelShape = [16, 3, 2, 2];
   const stride = [2, 2];
   const gpu = new GPU();
 
@@ -154,7 +154,14 @@ test('test-im2col', () => {
   const y = im2col(x.data);
 
   const refOutputShape = [32, outHeight * outWidth, 3, 4];
-  const refY = refIm2Col(x.data, shape, outHeight, outWidth, kernelShape, stride);
+  const refY = refIm2Col(
+    x.data,
+    shape,
+    outHeight,
+    outWidth,
+    [kernelShape[2], kernelShape[3]],
+    stride,
+  );
   expect(outputShape).toEqual(refOutputShape);
   expectAllClose(y, refY, 0.0001);
 });
