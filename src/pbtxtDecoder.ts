@@ -31,6 +31,8 @@ function convertParamField(name: string): string {
 function convertSpecialField(name: string): string {
   if (name.includes('Relu')) {
     return name.replace('Relu', 'ReLU');
+  } else if (name === "Pad" || name === "Stride" || name == "Dilation") {
+    return "Shape";
   }
   return name;
 }

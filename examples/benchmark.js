@@ -27,5 +27,6 @@ fs.readFile(nnpFile, (_, data) => {
     }
 
     console.log('Average execution time: %dms', totalTime / 99.0 * 1000.0);
-  });
+  })
+  .catch((err) => console.log(err));
 });
