@@ -1,7 +1,9 @@
+import argparse
 import os
-import numpy as np
 import struct
 import zlib
+
+import numpy as np
 from PIL import Image
 
 import nnabla as nn
@@ -100,11 +102,24 @@ def mlp(x):
     return PF.affine(h, 10, name="affine3")
 
 
+def cnn(x):
+    x /= 255.0
+    h = PF.convolution(x, 16, kernel=(4, 4), stride=(2, 2), name="conv1")
+    h = F.relu(h)
+    h = PF.convolution(h, 16, kernel=(2, 2), stride=(1, 1), name="conv2")
+    h = F.relu(h)
+    return PF.affine(h, 10, name="affine1")
+
+
 def cross_entropy(y, t):
     return F.mean(F.softmax_cross_entropy(y, t))
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--arch', type=str, default="mlp")
+    args = parser.parse_args()
+
     batch_size = 256
 
     # input variable
@@ -112,7 +127,13 @@ def main():
     t = nn.Variable((batch_size, 1))
 
     # train graph
-    y = mlp(x)
+    if args.arch == "mlp":
+        y = mlp(x)
+    elif args.arch == "cnn":
+        y = cnn(x)
+    else:
+        raise ValueError(f"invalid architecture type: {args.arch}")
+
     loss = cross_entropy(y, t)
 
     solver = S.Adam(1e-3)
