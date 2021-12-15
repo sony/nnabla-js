@@ -152,6 +152,7 @@ export function createIm2ColKernel(
   shape: number[],
   kernelShape: number[],
   stride: number[],
+  transposeChannel: boolean, // true: (B, L, C, K), false: (B, C, L, K)
 ): [(x: number[]) => number[], number[]] {
   // (B, C, H, W) -> (B, C, L, K) -> (B, L, C, K)
   // L is the output HxW
@@ -230,27 +231,36 @@ export function createIm2ColKernel(
     k2pixMapping.push(index);
   }
 
-  const outputShape = [shape[0], L, shape[1], K];
+  const outputShape = transposeChannel ? [shape[0], L, shape[1], K] : [shape[0], shape[1], L, K];
   const outputSize = shape[0] * shape[1] * L * K;
-  const outputDataSize = L * K;
 
-  // (B, C, H, W) -> (B, L, C, K)
+  // (B, C, H, W) -> (B, L, C, K) or (B, C, L, K)
   const kernel = gpu
     .createKernel(function (
       x: number[],
-      _outputShape: number[],
-      _outputDataSize: number,
+      _L: number,
+      _C: number,
+      _K: number,
       _l2pixMapping: number[],
       _k2pixMapping: number[],
       _dataSize: number,
+      _transposeChannel: boolean,
     ): number {
-      const [, _L, _C, _K] = _outputShape;
       let index = this.thread.x;
       const bIndex = Math.floor(index / (_L * _C * _K));
       index -= bIndex * (_L * _C * _K);
-      const lIndex = Math.floor(index / (_C * _K));
-      index -= lIndex * (_C * _K);
-      const cIndex = Math.floor(index / _K);
+
+      let lIndex: number = 0;
+      let cIndex: number = 0;
+      if (_transposeChannel) {
+        lIndex = Math.floor(index / (_C * _K));
+        index -= lIndex * _C * _K;
+        cIndex = Math.floor(index / _K);
+      } else {
+        cIndex = Math.floor(index / (_L * _K));
+        index -= cIndex * _L * _K;
+        lIndex = Math.floor(index / _K);
+      }
       const kIndex = index % _K;
 
       return x[_dataSize * (_C * bIndex + cIndex) + _l2pixMapping[lIndex] + _k2pixMapping[kIndex]];
@@ -258,7 +268,16 @@ export function createIm2ColKernel(
     .setOutput([outputSize]);
 
   function partialKernel(x: number[]): number[] {
-    return kernel(x, outputShape, outputDataSize, l2pixMapping, k2pixMapping, dataSize) as number[];
+    return kernel(
+      x,
+      outputShape[transposeChannel ? 1 : 2],
+      outputShape[transposeChannel ? 2 : 1],
+      outputShape[3],
+      l2pixMapping,
+      k2pixMapping,
+      dataSize,
+      transposeChannel,
+    ) as number[];
   }
 
   return [partialKernel, outputShape];

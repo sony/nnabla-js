@@ -102,6 +102,7 @@ function refIm2Col(
   outWidth: number,
   kernelShape: number[],
   stride: number[],
+  transposeChannel: boolean,
 ): number[] {
   const [B, C, H, W] = shape;
 
@@ -123,6 +124,10 @@ function refIm2Col(
     }
   }
 
+  if (!transposeChannel) {
+    return y;
+  }
+
   // (B, C, L, K) -> (B, L, C, K)
   const L = outHeight * outWidth;
   const K = kernelShape[0] * kernelShape[1];
@@ -140,7 +145,7 @@ function refIm2Col(
   return transposedY;
 }
 
-test('test-im2col', () => {
+test.each([[true], [false]])('test-im2col', (transposeChannel: boolean) => {
   const shape = [32, 3, 28, 28];
   const x = Variable.rand('x', shape);
   const kernelShape = [16, 3, 2, 2];
@@ -150,10 +155,18 @@ test('test-im2col', () => {
   const outHeight = (28 - 2) / 2 + 1;
   const outWidth = outHeight;
 
-  const [im2col, outputShape] = createIm2ColKernel(gpu, shape, kernelShape, stride);
+  const [im2col, outputShape] = createIm2ColKernel(
+    gpu,
+    shape,
+    kernelShape,
+    stride,
+    transposeChannel,
+  );
   const y = im2col(x.data);
 
-  const refOutputShape = [32, outHeight * outWidth, 3, 4];
+  const refOutputShape = transposeChannel
+    ? [32, outHeight * outWidth, 3, 4]
+    : [32, 3, outHeight * outWidth, 4];
   const refY = refIm2Col(
     x.data,
     shape,
@@ -161,6 +174,7 @@ test('test-im2col', () => {
     outWidth,
     [kernelShape[2], kernelShape[3]],
     stride,
+    transposeChannel,
   );
   expect(outputShape).toEqual(refOutputShape);
   expectAllClose(y, refY, 0.0001);

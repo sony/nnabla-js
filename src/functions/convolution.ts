@@ -52,6 +52,7 @@ export default class Convolution implements FunctionImpl {
       padShape,
       inputs[1].shape,
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
+      true,
     );
     const [B, L, C, K] = this.im2colShape;
 
