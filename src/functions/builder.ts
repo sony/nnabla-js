@@ -2,6 +2,7 @@ import {
   Function,
   AddScalarParameter,
   AffineParameter,
+  AveragePoolingParameter,
   BatchNormalizationParameter,
   ConvolutionParameter,
   MaxPoolingParameter,
@@ -14,6 +15,7 @@ import { getOrThrow } from '../utils';
 import Add2 from './add2';
 import AddScalar from './addScalar';
 import Affine from './affine';
+import AveragePooling from './averagePooling';
 import BatchNormalization from './batchNormalization';
 import Convolution from './convolution';
 import Div2 from './div2';
@@ -35,6 +37,8 @@ export default function buildFunctionImpl(func: Function): FunctionImpl {
       return new AddScalar(getOrThrow<AddScalarParameter>(func.getAddScalarParam()));
     case 'Affine':
       return new Affine(getOrThrow<AffineParameter>(func.getAffineParam()));
+    case 'AveragePooling':
+      return new AveragePooling(getOrThrow<AveragePoolingParameter>(func.getAveragePoolingParam()));
     case 'BatchNormalization':
       return new BatchNormalization(
         getOrThrow<BatchNormalizationParameter>(func.getBatchNormalizationParam()),
