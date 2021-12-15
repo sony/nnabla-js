@@ -5,6 +5,7 @@ import { createMatmulKernel, createPadKernel, createIm2ColKernel } from './utils
 import Variable from '../variable';
 import { getAsArrayOrThrow } from '../utils';
 
+// TODO: Supports dilation and group
 export default class Convolution implements FunctionImpl {
   param: ConvolutionParameter;
 

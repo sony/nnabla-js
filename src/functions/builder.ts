@@ -2,6 +2,7 @@ import {
   Function,
   AddScalarParameter,
   AffineParameter,
+  BatchNormalizationParameter,
   ConvolutionParameter,
   MulScalarParameter,
   PowScalarParameter,
@@ -12,6 +13,7 @@ import { getOrThrow } from '../utils';
 import Add2 from './add2';
 import AddScalar from './addScalar';
 import Affine from './affine';
+import BatchNormalization from './batchNormalization';
 import Convolution from './convolution';
 import Div2 from './div2';
 import Mul2 from './mul2';
@@ -31,6 +33,10 @@ export default function buildFunctionImpl(func: Function): FunctionImpl {
       return new AddScalar(getOrThrow<AddScalarParameter>(func.getAddScalarParam()));
     case 'Affine':
       return new Affine(getOrThrow<AffineParameter>(func.getAffineParam()));
+    case 'BatchNormalization':
+      return new BatchNormalization(
+        getOrThrow<BatchNormalizationParameter>(func.getBatchNormalizationParam()),
+      );
     case 'Convolution':
       return new Convolution(getOrThrow<ConvolutionParameter>(func.getConvolutionParam()));
     case 'Div2':
