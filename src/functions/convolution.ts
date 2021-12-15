@@ -50,7 +50,7 @@ export default class Convolution implements FunctionImpl {
     [this.im2colKernel, this.im2colShape] = createIm2ColKernel(
       this.gpu,
       padShape,
-      inputs[1].shape,
+      inputs[1].shape.slice(2),
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       true,
     );

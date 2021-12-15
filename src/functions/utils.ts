@@ -154,7 +154,7 @@ export function createIm2ColKernel(
   stride: number[],
   transposeChannel: boolean, // true: (B, L, C, K), false: (B, C, L, K)
 ): [(x: number[]) => number[], number[]] {
-  // (B, C, H, W) -> (B, C, L, K) -> (B, L, C, K)
+  // (B, C, H, W) -> (B, C, L, K) or (B, L, C, K)
   // L is the output HxW
   // K is the kernel HxW
 
@@ -163,7 +163,7 @@ export function createIm2ColKernel(
   // Calculate L
   let L = 1;
   for (let i = 0; i < shape.length - 2; i += 1) {
-    const size = (shape[i + 2] - kernelShape[i + 2]) / stride[i] + 1;
+    const size = (shape[i + 2] - kernelShape[i]) / stride[i] + 1;
     L *= size;
     convolvedShape.push(size);
   }
@@ -171,7 +171,7 @@ export function createIm2ColKernel(
   // Calculate K
   let K = 1;
   for (let i = 0; i < shape.length - 2; i += 1) {
-    K *= kernelShape[i + 2];
+    K *= kernelShape[i];
   }
 
   // Calculate W*H
@@ -182,7 +182,7 @@ export function createIm2ColKernel(
 
   let kernelSize = 1;
   for (let i = 0; i < shape.length - 2; i += 1) {
-    kernelSize *= kernelShape[i + 2];
+    kernelSize *= kernelShape[i];
   }
 
   // Calculate mapping L index to pixel index (upper-left pixel in kernel)
@@ -216,7 +216,7 @@ export function createIm2ColKernel(
     const pixelIndex = [];
     let cursor = i;
     for (let j = 0; j < shape.length - 2; j += 1) {
-      tmp /= kernelShape[j + 2];
+      tmp /= kernelShape[j];
       pixelIndex.push(Math.floor(cursor / tmp));
       cursor -= Math.floor(cursor / tmp) * tmp;
     }

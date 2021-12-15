@@ -158,7 +158,7 @@ test.each([[true], [false]])('test-im2col', (transposeChannel: boolean) => {
   const [im2col, outputShape] = createIm2ColKernel(
     gpu,
     shape,
-    kernelShape,
+    [kernelShape[2], kernelShape[3]],
     stride,
     transposeChannel,
   );

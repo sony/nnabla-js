@@ -4,6 +4,7 @@ import {
   AffineParameter,
   BatchNormalizationParameter,
   ConvolutionParameter,
+  MaxPoolingParameter,
   MulScalarParameter,
   PowScalarParameter,
   ReshapeParameter,
@@ -16,6 +17,7 @@ import Affine from './affine';
 import BatchNormalization from './batchNormalization';
 import Convolution from './convolution';
 import Div2 from './div2';
+import MaxPooling from './maxPooling';
 import Mul2 from './mul2';
 import MulScalar from './mulScalar';
 import Pow2 from './pow2';
@@ -41,6 +43,8 @@ export default function buildFunctionImpl(func: Function): FunctionImpl {
       return new Convolution(getOrThrow<ConvolutionParameter>(func.getConvolutionParam()));
     case 'Div2':
       return new Div2();
+    case 'MaxPooling':
+      return new MaxPooling(getOrThrow<MaxPoolingParameter>(func.getMaxPoolingParam()));
     case 'Mul2':
       return new Mul2();
     case 'MulScalar':
