@@ -28,8 +28,6 @@
     reader.onload = function () {
       nnabla.NNP.fromNNPData(this.result).then(function(n) {
         nnp = n;
-        console.log(nnp);
-        console.log(nnp.executors["runtime"]);
       });
     };
     reader.readAsBinaryString(file);

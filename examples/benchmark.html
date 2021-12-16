@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Benchmark</title>
+</head>
+<body>
+  <h2>Choose NNP</h2>
+  <input type="file" id="nnpFile" />
+  <p id="loadProgress"></p>
+  <h2>Choose Executor</h2>
+  <input type="text" id="executorName" placeholder="Executor Name" />
+  <button id="runButton">RUN</button>
+  <h2>Execution Time</h2>
+  <p id="executionProgress"></p>
+  <p id="time">Exection time: </p>
+</body>
+<script src="../dist/index.js"></script>
+<script>
+  let nnp = undefined;
+  let executorName = undefined;
+
+  document.getElementById("nnpFile").addEventListener("change", function (evt) {
+    document.getElementById("loadProgress").innerHTML = "Loading NNP...";
+    const file = evt.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function () {
+      nnabla.NNP.fromNNPData(this.result).then(function(n) {
+        nnp = n;
+        document.getElementById("loadProgress").innerHTML = "Completed";
+      });
+    };
+    reader.readAsBinaryString(file);
+  }, false);
+
+  document.getElementById("executorName").addEventListener("input", function (evt) {
+    executorName = evt.currentTarget.value;
+  }, false);
+
+  document.getElementById("runButton").addEventListener("click", function (evt) {
+    console.log(nnp);
+    let executor = nnp.executors[executorName];
+    let totalTime = 0.0;
+    const inputs = {};
+    for (let inputName of executor.inputNames) {
+      const variable = executor.network.getVariable(inputName);
+      inputs[inputName] = [...Array(variable.size())].map(() => Math.random() * 2.0 - 1.0);
+    }
+    document.getElementById("executionProgress").innerHTML = "Progress: 0%";
+    for (let i = 0; i < 100; ++i) {
+      const startTime = performance.now();
+      nnp.forward(executorName, inputs);
+      const endTime = performance.now();
+      if (i > 0) {
+        totalTime += endTime - startTime;
+      }
+      document.getElementById("executionProgress").innerHTML = "Progress: " + (i + 1) + "%";
+    }
+    document.getElementById("time").innerHTML = "Exection time: " + (totalTime / 99) + "ms";
+  }, false);
+</script>
