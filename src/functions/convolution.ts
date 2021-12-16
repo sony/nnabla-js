@@ -23,9 +23,9 @@ export default class Convolution implements FunctionImpl {
 
   transposeKernel: IKernelRunShortcut | undefined;
 
-  constructor(param: ConvolutionParameter) {
+  constructor(param: ConvolutionParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.matmulKernel = undefined;
     this.padKernel = undefined;
     this.im2colKernel = undefined;

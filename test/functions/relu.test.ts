@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import ReLu from '../../src/functions/relu';
 import Variable from '../../src/variable';
 import { expectClose } from '../testUtils';
@@ -5,7 +6,7 @@ import { expectClose } from '../testUtils';
 test('test-relu', () => {
   const x = Variable.rand('x', [100]);
   const y = Variable.rand('y', [100]);
-  const relu = new ReLu();
+  const relu = new ReLu(new GPU());
 
   relu.setup([x], [y]);
   relu.forward([x], [y]);

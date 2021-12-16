@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { AffineParameter } from '../../src/proto/nnabla_pb';
 import Affine from '../../src/functions/affine';
 import Variable from '../../src/variable';
@@ -35,7 +36,7 @@ test('test-affine', () => {
   const y = Variable.rand('y', [128, 32]);
   const param = new AffineParameter();
   param.setBaseAxis(1);
-  const affine = new Affine(param);
+  const affine = new Affine(param, new GPU());
 
   affine.setup([x, w, b], [y]);
   affine.forward([x, w, b], [y]);

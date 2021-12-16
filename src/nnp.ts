@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import JSZip from 'jszip';
 import {
   Executor as ProtoExecutor,
@@ -75,13 +76,14 @@ export class NNP {
     this.variableManager = variableManager;
   }
 
-  static fromNNPData(data: Uint8Array): Promise<NNP> {
+  static fromNNPData(data: Uint8Array, gpu: GPU | undefined): Promise<NNP> {
     return unzipNNP(data).then((nnp) => {
+      const ctx = gpu === undefined ? new GPU() : gpu;
       const variableManager = VariableManager.fromProtoParameters(nnp.parameters);
 
       const networks: { [key: string]: Network } = {};
       for (const protoNetwork of nnp.networks) {
-        const network = Network.fromProtoNetwork(protoNetwork, variableManager);
+        const network = Network.fromProtoNetwork(protoNetwork, variableManager, ctx);
         networks[network.name] = network;
       }
 

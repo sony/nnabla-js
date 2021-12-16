@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { Network as ProtoNetwork } from './proto/nnabla_pb';
 import Function from './function';
 import Variable from './variable';
@@ -20,7 +21,11 @@ export default class Network {
     this.functions = functions;
   }
 
-  static fromProtoNetwork(network: ProtoNetwork, variableManager: VariableManager): Network {
+  static fromProtoNetwork(
+    network: ProtoNetwork,
+    variableManager: VariableManager,
+    gpu: GPU,
+  ): Network {
     const name = network.getName();
 
     const variables = network.getVariableList();
@@ -40,7 +45,7 @@ export default class Network {
     const functionMapping: { [key: string]: Function } = {};
     for (const func of functions) {
       const functionName = func.getName();
-      functionMapping[functionName] = Function.fromProtoFunction(func, variableManager);
+      functionMapping[functionName] = Function.fromProtoFunction(func, variableManager, gpu);
     }
 
     return new Network(name, variableMapping, functionMapping);

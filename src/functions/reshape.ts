@@ -10,9 +10,9 @@ export default class Reshape implements FunctionImpl {
 
   param: ReshapeParameter;
 
-  constructor(param: ReshapeParameter) {
+  constructor(param: ReshapeParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.kernel = undefined;
   }
 

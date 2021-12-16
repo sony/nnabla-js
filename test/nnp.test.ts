@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { GPU } from 'gpu.js';
 import { unzipNNP, NNP } from '../src/nnp';
 
 test('test-unzipNNP', (done) => {
@@ -14,7 +15,8 @@ test('test-unzipNNP', (done) => {
 
 test('test-nnp', (done) => {
   fs.readFile('test.nnp', (_, data) => {
-    NNP.fromNNPData(data).then((nnp) => {
+    const gpu = new GPU();
+    NNP.fromNNPData(data, gpu).then((nnp) => {
       const executorName = Object.keys(nnp.executors)[0];
       const executor = nnp.executors[executorName];
       const { network } = executor;
@@ -39,7 +41,8 @@ test('test-nnp', (done) => {
 
 test('test-nnp-forwardAsync', (done) => {
   fs.readFile('test.nnp', (_, data) => {
-    NNP.fromNNPData(data).then((nnp) => {
+    const gpu = new GPU();
+    NNP.fromNNPData(data, gpu).then((nnp) => {
       const executorName = Object.keys(nnp.executors)[0];
       const executor = nnp.executors[executorName];
       const { network } = executor;

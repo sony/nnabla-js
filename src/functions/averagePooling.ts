@@ -18,9 +18,9 @@ export default class AveragePooling implements FunctionImpl {
 
   poolingKernel: IKernelRunShortcut | undefined;
 
-  constructor(param: AveragePoolingParameter) {
+  constructor(param: AveragePoolingParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.padKernel = undefined;
     this.im2colKernel = undefined;
     this.im2colShape = [];

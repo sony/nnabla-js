@@ -10,9 +10,9 @@ export default class PowScalar implements FunctionImpl {
 
   param: PowScalarParameter;
 
-  constructor(param: PowScalarParameter) {
+  constructor(param: PowScalarParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.kernel = undefined;
   }
 

@@ -10,9 +10,9 @@ export default class MulScalar implements FunctionImpl {
 
   param: MulScalarParameter;
 
-  constructor(param: MulScalarParameter) {
+  constructor(param: MulScalarParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.kernel = undefined;
   }
 

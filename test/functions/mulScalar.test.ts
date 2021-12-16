@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { MulScalarParameter } from '../../src/proto/nnabla_pb';
 import MulScalar from '../../src/functions/mulScalar';
 import Variable from '../../src/variable';
@@ -8,7 +9,7 @@ test('test-mulScalar', () => {
   const y = Variable.rand('y', [100]);
   const param = new MulScalarParameter();
   param.setVal(2.0);
-  const mulScalar = new MulScalar(param);
+  const mulScalar = new MulScalar(param, new GPU());
 
   mulScalar.setup([x], [y]);
   mulScalar.forward([x], [y]);

@@ -13,9 +13,9 @@ export default class Affine implements FunctionImpl {
 
   biasKernel: IKernelRunShortcut | undefined;
 
-  constructor(param: AffineParameter) {
+  constructor(param: AffineParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.matmulKernel = undefined;
     this.biasKernel = undefined;
   }

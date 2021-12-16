@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { ConvolutionParameter, Shape } from '../../src/proto/nnabla_pb';
 import Convolution from '../../src/functions/convolution';
 import Variable from '../../src/variable';
@@ -70,7 +71,7 @@ test('test-convolution', () => {
   stride.addDim(2);
   param.setStride(stride);
 
-  const conv = new Convolution(param);
+  const conv = new Convolution(param, new GPU());
 
   conv.setup([x, w, b], [y]);
   conv.forward([x, w, b], [y]);

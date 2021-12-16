@@ -10,9 +10,9 @@ export default class AddScalar implements FunctionImpl {
 
   param: AddScalarParameter;
 
-  constructor(param: AddScalarParameter) {
+  constructor(param: AddScalarParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.kernel = undefined;
   }
 

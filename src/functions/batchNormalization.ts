@@ -18,9 +18,9 @@ export default class BatchNormalization implements FunctionImpl {
 
   targetAxisSize: number;
 
-  constructor(param: BatchNormalizationParameter) {
+  constructor(param: BatchNormalizationParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.kernel = undefined;
     this.noBias = false;
     this.noScale = false;

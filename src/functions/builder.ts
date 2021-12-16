@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import {
   Function,
   AddScalarParameter,
@@ -28,41 +29,45 @@ import ReLU from './relu';
 import Reshape from './reshape';
 import Sub2 from './sub2';
 
-export default function buildFunctionImpl(func: Function): FunctionImpl {
+export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImpl {
   const functionType = func.getType();
   switch (functionType) {
     case 'Add2':
-      return new Add2();
+      return new Add2(gpu);
     case 'AddScalar':
-      return new AddScalar(getOrThrow<AddScalarParameter>(func.getAddScalarParam()));
+      return new AddScalar(getOrThrow<AddScalarParameter>(func.getAddScalarParam()), gpu);
     case 'Affine':
-      return new Affine(getOrThrow<AffineParameter>(func.getAffineParam()));
+      return new Affine(getOrThrow<AffineParameter>(func.getAffineParam()), gpu);
     case 'AveragePooling':
-      return new AveragePooling(getOrThrow<AveragePoolingParameter>(func.getAveragePoolingParam()));
+      return new AveragePooling(
+        getOrThrow<AveragePoolingParameter>(func.getAveragePoolingParam()),
+        gpu,
+      );
     case 'BatchNormalization':
       return new BatchNormalization(
         getOrThrow<BatchNormalizationParameter>(func.getBatchNormalizationParam()),
+        gpu,
       );
     case 'Convolution':
-      return new Convolution(getOrThrow<ConvolutionParameter>(func.getConvolutionParam()));
+      return new Convolution(getOrThrow<ConvolutionParameter>(func.getConvolutionParam()), gpu);
     case 'Div2':
-      return new Div2();
+      return new Div2(gpu);
     case 'MaxPooling':
-      return new MaxPooling(getOrThrow<MaxPoolingParameter>(func.getMaxPoolingParam()));
+      return new MaxPooling(getOrThrow<MaxPoolingParameter>(func.getMaxPoolingParam()), gpu);
     case 'Mul2':
-      return new Mul2();
+      return new Mul2(gpu);
     case 'MulScalar':
-      return new MulScalar(getOrThrow<MulScalarParameter>(func.getMulScalarParam()));
+      return new MulScalar(getOrThrow<MulScalarParameter>(func.getMulScalarParam()), gpu);
     case 'Pow2':
-      return new Pow2();
+      return new Pow2(gpu);
     case 'PowScalar':
-      return new PowScalar(getOrThrow<PowScalarParameter>(func.getPowScalarParam()));
+      return new PowScalar(getOrThrow<PowScalarParameter>(func.getPowScalarParam()), gpu);
     case 'ReLU':
-      return new ReLU();
+      return new ReLU(gpu);
     case 'Reshape':
-      return new Reshape(getOrThrow<ReshapeParameter>(func.getReshapeParam()));
+      return new Reshape(getOrThrow<ReshapeParameter>(func.getReshapeParam()), gpu);
     case 'Sub2':
-      return new Sub2();
+      return new Sub2(gpu);
     default:
       throw Error(`${functionType} is not supported yet.`);
   }

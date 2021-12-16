@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { ReshapeParameter, Shape } from '../../src/proto/nnabla_pb';
 import Reshape from '../../src/functions/reshape';
 import Variable from '../../src/variable';
@@ -11,7 +12,7 @@ test('test-reshape', () => {
   shape.addDim(2);
   shape.addDim(50);
   param.setShape(shape);
-  const reshape = new Reshape(param);
+  const reshape = new Reshape(param, new GPU());
 
   reshape.setup([x], [y]);
   reshape.forward([x], [y]);

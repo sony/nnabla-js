@@ -18,9 +18,9 @@ export default class MaxPooling implements FunctionImpl {
 
   poolingKernel: IKernelRunShortcut | undefined;
 
-  constructor(param: MaxPoolingParameter) {
+  constructor(param: MaxPoolingParameter, gpu: GPU) {
     this.param = param;
-    this.gpu = new GPU();
+    this.gpu = gpu;
     this.padKernel = undefined;
     this.im2colKernel = undefined;
     this.im2colShape = [];

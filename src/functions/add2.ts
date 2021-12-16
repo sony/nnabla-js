@@ -7,8 +7,8 @@ export default class Add2 implements FunctionImpl {
 
   kernel: IKernelRunShortcut | undefined;
 
-  constructor() {
-    this.gpu = new GPU();
+  constructor(gpu: GPU) {
+    this.gpu = gpu;
     this.kernel = undefined;
   }
 

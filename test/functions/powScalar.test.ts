@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { PowScalarParameter } from '../../src/proto/nnabla_pb';
 import PowScalar from '../../src/functions/powScalar';
 import Variable from '../../src/variable';
@@ -8,7 +9,7 @@ test('test-powScalar', () => {
   const y = Variable.rand('y', [100]);
   const param = new PowScalarParameter();
   param.setVal(2.0);
-  const powScalar = new PowScalar(param);
+  const powScalar = new PowScalar(param, new GPU());
 
   for (let i = 0; i < x.size(); i += 1) {
     x.data[i] += 2.0;

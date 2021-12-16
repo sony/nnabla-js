@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { AveragePoolingParameter, Shape } from '../../src/proto/nnabla_pb';
 import AveragePooling from '../../src/functions/averagePooling';
 import Variable from '../../src/variable';
@@ -56,7 +57,7 @@ test('test-average-pooling', () => {
   kernel.addDim(4);
   param.setKernel(kernel);
 
-  const pooling = new AveragePooling(param);
+  const pooling = new AveragePooling(param, new GPU());
 
   pooling.setup([x], [y]);
   pooling.forward([x], [y]);

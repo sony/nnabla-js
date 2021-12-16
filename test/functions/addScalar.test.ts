@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { AddScalarParameter } from '../../src/proto/nnabla_pb';
 import AddScalar from '../../src/functions/addScalar';
 import Variable from '../../src/variable';
@@ -8,7 +9,7 @@ test('test-addScalar', () => {
   const y = Variable.rand('y', [100]);
   const param = new AddScalarParameter();
   param.setVal(2.0);
-  const addScalar = new AddScalar(param);
+  const addScalar = new AddScalar(param, new GPU());
 
   addScalar.setup([x], [y]);
   addScalar.forward([x], [y]);

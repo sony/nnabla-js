@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { MaxPoolingParameter, Shape } from '../../src/proto/nnabla_pb';
 import MaxPooling from '../../src/functions/maxPooling';
 import Variable from '../../src/variable';
@@ -58,7 +59,7 @@ test('test-max-pooling', () => {
   kernel.addDim(4);
   param.setKernel(kernel);
 
-  const pooling = new MaxPooling(param);
+  const pooling = new MaxPooling(param, new GPU());
 
   pooling.setup([x], [y]);
   pooling.forward([x], [y]);

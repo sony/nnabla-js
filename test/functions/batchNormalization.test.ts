@@ -1,3 +1,4 @@
+import { GPU } from 'gpu.js';
 import { BatchNormalizationParameter } from '../../src/proto/nnabla_pb';
 import BatchNormalization from '../../src/functions/batchNormalization';
 import Variable from '../../src/variable';
@@ -38,7 +39,7 @@ test('test-batch-normalization', () => {
   const param = new BatchNormalizationParameter();
   param.addAxes(1);
   param.setEps(0.0001);
-  const bn = new BatchNormalization(param);
+  const bn = new BatchNormalization(param, new GPU());
 
   for (let i = 0; i < vars.size(); i += 1) {
     vars.data[i] += 1.0;
