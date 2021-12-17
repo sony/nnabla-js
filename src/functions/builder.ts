@@ -6,6 +6,7 @@ import {
   AveragePoolingParameter,
   BatchNormalizationParameter,
   ConvolutionParameter,
+  DepthwiseConvolutionParameter,
   MaxPoolingParameter,
   MulScalarParameter,
   PowScalarParameter,
@@ -19,6 +20,7 @@ import Affine from './affine';
 import AveragePooling from './averagePooling';
 import BatchNormalization from './batchNormalization';
 import Convolution from './convolution';
+import DepthwiseConvolution from './depthwiseConvolution';
 import Div2 from './div2';
 import MaxPooling from './maxPooling';
 import Mul2 from './mul2';
@@ -50,6 +52,11 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       );
     case 'Convolution':
       return new Convolution(getOrThrow<ConvolutionParameter>(func.getConvolutionParam()), gpu);
+    case 'DepthwiseConvolution':
+      return new DepthwiseConvolution(
+        getOrThrow<DepthwiseConvolutionParameter>(func.getDepthwiseConvolutionParam()),
+        gpu,
+      );
     case 'Div2':
       return new Div2(gpu);
     case 'MaxPooling':
