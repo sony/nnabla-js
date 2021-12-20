@@ -1,7 +1,7 @@
 import { GPU, IKernelRunShortcut } from 'gpu.js';
 import { ConvolutionParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
-import { createMatmulKernel, createPadKernel, createIm2ColKernel } from './utils';
+import { createBatchMatmulKernel, createIm2ColKernel } from './utils';
 import Variable from '../variable';
 import { getAsArrayOrThrow } from '../utils';
 
@@ -11,8 +11,6 @@ export default class Convolution implements FunctionImpl {
 
   gpu: GPU;
 
-  padKernel: ((x: number[]) => number[]) | undefined;
-
   im2colKernel: ((x: number[]) => number[]) | undefined;
 
   im2colShape: number[];
@@ -21,13 +19,10 @@ export default class Convolution implements FunctionImpl {
 
   matmulKernel: ((x: number[], y: number[]) => number[]) | undefined;
 
-  transposeKernel: IKernelRunShortcut | undefined;
-
   constructor(param: ConvolutionParameter, gpu: GPU) {
     this.param = param;
     this.gpu = gpu;
     this.matmulKernel = undefined;
-    this.padKernel = undefined;
     this.im2colKernel = undefined;
     this.im2colShape = [];
     this.biasKernel = undefined;
@@ -38,23 +33,15 @@ export default class Convolution implements FunctionImpl {
       throw Error('channelLast option is not supported yet.');
     }
 
-    // Apply padding
-    const [padKernel, padShape] = createPadKernel(
-      this.gpu,
-      inputs[0].shape,
-      getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
-    );
-    this.padKernel = padKernel;
-
     // Apply im2col
     [this.im2colKernel, this.im2colShape] = createIm2ColKernel(
       this.gpu,
-      padShape,
+      inputs[0].shape,
       inputs[1].shape.slice(2),
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
-      true,
+      getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
-    const [B, L, C, K] = this.im2colShape;
+    const [B, C, K, L] = this.im2colShape;
 
     const wC = inputs[1].shape[0];
     let kernelSize = 1;
@@ -62,38 +49,22 @@ export default class Convolution implements FunctionImpl {
       kernelSize *= inputs[1].shape[i];
     }
 
-    // Apply matmul
-    [this.matmulKernel] = createMatmulKernel(
+    // Apply batch matmul
+    [this.matmulKernel] = createBatchMatmulKernel(
       this.gpu,
-      [B * L, C * K],
-      [wC, kernelSize / wC],
-      false,
-      true,
+      [1, wC, kernelSize / wC],
+      [B, C * K, L],
     );
 
     // Apply bias
     if (inputs.length === 3) {
       this.biasKernel = this.gpu
-        .createKernel(function (x: number[], b: number[], oColSize: number): number {
-          const col = this.thread.x % oColSize;
+        .createKernel(function (x: number[], b: number[], _C: number, _L: number): number {
+          const col = Math.floor((this.thread.x % (_C * _L)) / _L);
           return x[this.thread.x] + b[col];
         })
         .setOutput([outputs[0].size()]);
     }
-
-    // Apply transpose
-    // (B, L, wC) -> (B, wC, L)
-    this.transposeKernel = this.gpu
-      .createKernel(function (x: number[], shape: number[]): number {
-        const [, _L, _wC] = shape;
-        let index = this.thread.x;
-        const bIndex = Math.floor(index / (_wC * _L));
-        index -= bIndex * _wC * _L;
-        const wcIndex = Math.floor(index / _L);
-        const lIndex = index % _L;
-        return x[bIndex * _L * _wC + lIndex * _wC + wcIndex];
-      })
-      .setOutput([outputs[0].size()]);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {
@@ -106,29 +77,22 @@ export default class Convolution implements FunctionImpl {
   }
 
   forward(inputs: Variable[], outputs: Variable[]): void {
-    if (
-      this.padKernel === undefined ||
-      this.im2colKernel === undefined ||
-      this.matmulKernel === undefined ||
-      this.transposeKernel === undefined
-    ) {
+    if (this.im2colKernel === undefined || this.matmulKernel === undefined) {
       throw Error('call setup first.');
     }
     Convolution.validate(inputs, outputs);
 
-    const padOutput = this.padKernel(inputs[0].data);
-    const im2colOutput = this.im2colKernel(padOutput);
-    let matmulOutput = this.matmulKernel(im2colOutput, inputs[1].data);
+    const im2colOutput = this.im2colKernel(inputs[0].data);
+    let output = this.matmulKernel(inputs[1].data, im2colOutput);
 
     if (this.biasKernel) {
-      matmulOutput = this.biasKernel(matmulOutput, inputs[2].data, inputs[1].shape[0]) as number[];
+      output = this.biasKernel(
+        output,
+        inputs[2].data,
+        inputs[1].shape[0],
+        this.im2colShape[3],
+      ) as number[];
     }
-
-    const output = this.transposeKernel(matmulOutput, [
-      this.im2colShape[0],
-      this.im2colShape[1],
-      inputs[1].shape[0],
-    ]) as number[];
 
     outputs[0].setData(output);
   }

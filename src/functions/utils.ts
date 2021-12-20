@@ -69,82 +69,127 @@ export function createMatmulKernel(
   return [partialKernel, outputShape];
 }
 
-export function createPadKernel(
+export function createBatchMatmulKernel(
   gpu: GPU,
-  shape: number[],
-  pad: number[],
-): [(x: number[]) => number[], number[]] {
-  let dataSize = 1;
-  for (let i = 0; i < shape.length - 2; i += 1) {
-    dataSize *= shape[i + 2];
+  xShape: number[],
+  yShape: number[],
+): [(x: number[], y: number[]) => number[], number[]] {
+  if (xShape.length !== 3) {
+    throw Error(`invalid x shape: ${xShape}`);
+  }
+  if (yShape.length !== 3) {
+    throw Error(`invalid y shape: ${yShape}`);
+  }
+  if (xShape[0] !== 1 && yShape[0] !== 1 && xShape[0] !== yShape[0]) {
+    throw Error(`invalid batch size: x=${xShape[0]}, y=${yShape[0]}`);
   }
 
-  const paddedShape = [shape[0], shape[1]];
-  let paddedSize = shape[0] * shape[1];
-  let paddedDataSize = 1;
-  for (let i = 0; i < shape.length - 2; i += 1) {
-    const dim = shape[i + 2] + 2 * pad[i];
-    paddedShape.push(dim);
-    paddedSize *= dim;
-    paddedDataSize *= dim;
-  }
-
-  const padIndexMapping: number[] = [];
-  for (let i = 0; i < paddedDataSize; i += 1) {
-    // Identify index at the padded pixels
-    const index = [];
-    let tmp = paddedDataSize;
-    let cursor = i;
-    for (let j = 0; j < shape.length - 2; j += 1) {
-      tmp /= paddedShape[j + 2];
-      index.push(Math.floor(cursor / tmp));
-      cursor -= Math.floor(cursor / tmp) * tmp;
-    }
-
-    // Check if padded pixel
-    let flag = false;
-    for (let j = 0; j < shape.length - 2; j += 1) {
-      if (index[j] < pad[j] || index[j] >= shape[j + 2] + pad[j]) {
-        flag = true;
-        break;
-      }
-    }
-
-    if (flag) {
-      padIndexMapping.push(-1);
-    } else {
-      let pixIndex = 0;
-      tmp = dataSize;
-      for (let j = 0; j < shape.length - 2; j += 1) {
-        tmp /= shape[j + 2];
-        pixIndex += tmp * (index[j] - pad[j]);
-      }
-      padIndexMapping.push(pixIndex);
-    }
-  }
+  const outputShape = [];
+  outputShape.push(Math.max(xShape[0], yShape[0]));
+  outputShape.push(xShape[1]);
+  outputShape.push(yShape[2]);
 
   const kernel = gpu
     .createKernel(function (
       x: number[],
-      _shape: number[],
-      _padIndexMapping: number[],
-      _dataSize: number,
-      _paddedDataSize: number,
+      y: number[],
+      _xShape: number[],
+      _yShape: number[],
     ): number {
-      const index = _padIndexMapping[this.thread.x % _paddedDataSize];
-      const bcIndex = Math.floor(this.thread.x / _paddedDataSize);
-      if (index === -1) {
-        return 0.0;
-      }
-      return x[bcIndex * _dataSize + index];
-    })
-    .setOutput([paddedSize]);
+      const [xBatchSize, xRowSize, xColSize] = _xShape;
+      const [yBatchSize, yRowSize, yColSize] = _yShape;
+      const batchIndex = Math.floor(this.thread.x / (xRowSize * yColSize));
+      const xBatch = xBatchSize === 1 ? 0 : batchIndex;
+      const yBatch = yBatchSize === 1 ? 0 : batchIndex;
+      const xOffset = xBatch * xRowSize * xColSize;
+      const yOffset = yBatch * yRowSize * yColSize;
+      const xBase = Math.floor((this.thread.x % (xRowSize * yColSize)) / yColSize);
+      const yBase = this.thread.x % yColSize;
+      const dim = xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        xValue = x[xOffset + xBase * xColSize + i];
 
-  function partialKernel(x: number[]): number[] {
-    return kernel(x, shape, padIndexMapping, dataSize, paddedDataSize) as number[];
+        let yValue: number = 0.0;
+        yValue = y[yOffset + i * yColSize + yBase];
+
+        output += xValue * yValue;
+      }
+      return output;
+    })
+    .setOutput([outputShape[0] * outputShape[1] * outputShape[2]]);
+
+  function partialKernel(x: number[], y: number[]): number[] {
+    return kernel(x, y, xShape, yShape) as number[];
   }
 
-  return [partialKernel, paddedShape];
+  return [partialKernel, outputShape];
+}
+
+export function createIm2Col2dKernel(
+  gpu: GPU,
+  shape: number[],
+  kernelShape: number[],
+  stride: number[],
+  pad: number[],
+): [(x: number[]) => number[], number[]] {
+  // (B, C, H, W) -> (B, C, K, L)
+  // L is the output HxW
+  // K is the kernel HxW
+
+  const [B, C, H, W] = shape;
+  const [kH, kW] = kernelShape;
+  const [sH, sW] = stride;
+  const [pH, pW] = pad;
+
+  // Calculate convoluted shape
+  const oB = B;
+  const oH = (H + 2 * pH - kH) / sH + 1;
+  const oW = (W + 2 * pW - kW) / sW + 1;
+
+  // Calculate im2col shape
+  const K = kH * kW;
+  const L = oH * oW;
+  const outputShape = [oB, C, K, L];
+  const outputSize = oB * C * K * L;
+
+  const kernel = gpu
+    .createKernel(function (
+      x: number[],
+      _H: number,
+      _W: number,
+      _kH: number,
+      _kW: number,
+      _sH: number,
+      _sW: number,
+      _pH: number,
+      _pW: number,
+      _oH: number,
+      _oW: number,
+    ): number {
+      // (B, C, H, W) -> (B, C, K, L)
+      const bcIndex = Math.floor(this.thread.x / (_kH * _kW * _oH * _oW));
+      const hIdx = Math.floor(this.thread.x / _oW);
+      const hIndex = hIdx % _oH;
+      const wIndex = this.thread.x % _oW;
+      const cIm = Math.floor(hIdx / _oH);
+      const yK = Math.floor(cIm / _kW) % _kH;
+      const xK = cIm % _kW;
+      const yI = hIndex * _sH - _pH + yK;
+      const xI = wIndex * _sW - _pW + xK;
+      if (yI >= 0 && xI >= 0 && yI < _H && xI < _W) {
+        return x[bcIndex * _H * _W + yI * _W + xI];
+      }
+      return 0.0;
+    })
+    .setOutput([outputSize]);
+
+  function im2col(x: number[]): number[] {
+    return kernel(x, H, W, kH, kW, sH, sW, pH, pW, oH, oW) as number[];
+  }
+
+  return [im2col, outputShape];
 }
 
 export function createIm2ColKernel(
@@ -152,133 +197,10 @@ export function createIm2ColKernel(
   shape: number[],
   kernelShape: number[],
   stride: number[],
-  transposeChannel: boolean, // true: (B, L, C, K), false: (B, C, L, K)
+  pad: number[],
 ): [(x: number[]) => number[], number[]] {
-  // (B, C, H, W) -> (B, C, L, K) or (B, L, C, K)
-  // L is the output HxW
-  // K is the kernel HxW
-
-  const convolvedShape = [];
-
-  // Calculate L
-  let L = 1;
-  for (let i = 0; i < shape.length - 2; i += 1) {
-    const size = (shape[i + 2] - kernelShape[i]) / stride[i] + 1;
-    L *= size;
-    convolvedShape.push(size);
+  if (shape.length === 4) {
+    return createIm2Col2dKernel(gpu, shape, kernelShape, stride, pad);
   }
-
-  // Calculate K
-  let K = 1;
-  for (let i = 0; i < shape.length - 2; i += 1) {
-    K *= kernelShape[i];
-  }
-
-  // Calculate W*H
-  let dataSize = 1;
-  for (let i = 0; i < shape.length - 2; i += 1) {
-    dataSize *= shape[i + 2];
-  }
-
-  let kernelSize = 1;
-  for (let i = 0; i < shape.length - 2; i += 1) {
-    kernelSize *= kernelShape[i];
-  }
-
-  // Calculate mapping L index to pixel index (upper-left pixel in kernel)
-  const l2pixMapping: number[] = [];
-  for (let i = 0; i < L; i += 1) {
-    // Identify index at the pixel data
-    const pixelIndex = [];
-    let tmp = L;
-    let cursor = i;
-    for (let j = 0; j < shape.length - 2; j += 1) {
-      tmp /= convolvedShape[j];
-      pixelIndex.push(Math.floor(cursor / tmp) * stride[j]);
-      cursor -= Math.floor(cursor / tmp) * tmp;
-    }
-
-    // Convert multi-dimensional index to scalar index
-    tmp = dataSize;
-    let index = 0;
-    for (let j = 0; j < shape.length - 2; j += 1) {
-      tmp /= shape[j + 2];
-      index += pixelIndex[j] * tmp;
-    }
-    l2pixMapping.push(index);
-  }
-
-  // Calculate mapping K index to pixel offset
-  const k2pixMapping: number[] = [];
-  for (let i = 0; i < K; i += 1) {
-    // Identify index at the pixel data
-    let tmp = kernelSize;
-    const pixelIndex = [];
-    let cursor = i;
-    for (let j = 0; j < shape.length - 2; j += 1) {
-      tmp /= kernelShape[j];
-      pixelIndex.push(Math.floor(cursor / tmp));
-      cursor -= Math.floor(cursor / tmp) * tmp;
-    }
-
-    // Convert multi-dimensional index to scalar index
-    tmp = dataSize;
-    let index = 0;
-    for (let j = 0; j < shape.length - 2; j += 1) {
-      tmp /= shape[j + 2];
-      index += pixelIndex[j] * tmp;
-    }
-    k2pixMapping.push(index);
-  }
-
-  const outputShape = transposeChannel ? [shape[0], L, shape[1], K] : [shape[0], shape[1], L, K];
-  const outputSize = shape[0] * shape[1] * L * K;
-
-  // (B, C, H, W) -> (B, L, C, K) or (B, C, L, K)
-  const kernel = gpu
-    .createKernel(function (
-      x: number[],
-      _L: number,
-      _C: number,
-      _K: number,
-      _l2pixMapping: number[],
-      _k2pixMapping: number[],
-      _dataSize: number,
-      _transposeChannel: boolean,
-    ): number {
-      let index = this.thread.x;
-      const bIndex = Math.floor(index / (_L * _C * _K));
-      index -= bIndex * (_L * _C * _K);
-
-      let lIndex: number = 0;
-      let cIndex: number = 0;
-      if (_transposeChannel) {
-        lIndex = Math.floor(index / (_C * _K));
-        index -= lIndex * _C * _K;
-        cIndex = Math.floor(index / _K);
-      } else {
-        cIndex = Math.floor(index / (_L * _K));
-        index -= cIndex * _L * _K;
-        lIndex = Math.floor(index / _K);
-      }
-      const kIndex = index % _K;
-
-      return x[_dataSize * (_C * bIndex + cIndex) + _l2pixMapping[lIndex] + _k2pixMapping[kIndex]];
-    })
-    .setOutput([outputSize]);
-
-  function partialKernel(x: number[]): number[] {
-    return kernel(
-      x,
-      outputShape[transposeChannel ? 1 : 2],
-      outputShape[transposeChannel ? 2 : 1],
-      outputShape[3],
-      l2pixMapping,
-      k2pixMapping,
-      dataSize,
-      transposeChannel,
-    ) as number[];
-  }
-
-  return [partialKernel, outputShape];
+  throw Error('im2col only supports (B, C, H, W) shape.');
 }

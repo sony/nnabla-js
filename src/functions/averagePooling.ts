@@ -1,7 +1,7 @@
 import { GPU, IKernelRunShortcut } from 'gpu.js';
 import { AveragePoolingParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
-import { createPadKernel, createIm2ColKernel } from './utils';
+import { createIm2ColKernel } from './utils';
 import Variable from '../variable';
 import { getAsArrayOrThrow } from '../utils';
 
@@ -9,8 +9,6 @@ export default class AveragePooling implements FunctionImpl {
   param: AveragePoolingParameter;
 
   gpu: GPU;
-
-  padKernel: ((x: number[]) => number[]) | undefined;
 
   im2colKernel: ((x: number[]) => number[]) | undefined;
 
@@ -21,7 +19,6 @@ export default class AveragePooling implements FunctionImpl {
   constructor(param: AveragePoolingParameter, gpu: GPU) {
     this.param = param;
     this.gpu = gpu;
-    this.padKernel = undefined;
     this.im2colKernel = undefined;
     this.im2colShape = [];
     this.poolingKernel = undefined;
@@ -32,29 +29,25 @@ export default class AveragePooling implements FunctionImpl {
       throw Error('channelLast option is not supported yet.');
     }
 
-    // Apply padding
-    const [padKernel, padShape] = createPadKernel(
-      this.gpu,
-      inputs[0].shape,
-      getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
-    );
-    this.padKernel = padKernel;
-
     // Apply im2col
+    // (B, C, K, L)
     [this.im2colKernel, this.im2colShape] = createIm2ColKernel(
       this.gpu,
-      padShape,
+      inputs[0].shape,
       getAsArrayOrThrow<number>(this.param.getKernel()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
-      false,
+      getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
 
+    // (B, C, K, L) -> (B, C, L)
     this.poolingKernel = this.gpu
-      .createKernel(function (x: number[], K: number): number {
-        const index = K * this.thread.x;
+      .createKernel(function (x: number[], K: number, L: number): number {
+        const bcIndex = Math.floor(this.thread.x / L);
+        const lIndex = this.thread.x % L;
+        const index = bcIndex * K * L + lIndex;
         let sum = 0.0;
         for (let i = 0; i < K; i += 1) {
-          sum += x[index + i];
+          sum += x[index + i * L];
         }
         return sum / K;
       })
@@ -71,18 +64,17 @@ export default class AveragePooling implements FunctionImpl {
   }
 
   forward(inputs: Variable[], outputs: Variable[]): void {
-    if (
-      this.padKernel === undefined ||
-      this.im2colKernel === undefined ||
-      this.poolingKernel === undefined
-    ) {
+    if (this.im2colKernel === undefined || this.poolingKernel === undefined) {
       throw Error('call setup first.');
     }
     AveragePooling.validate(inputs, outputs);
 
-    const padOutput = this.padKernel(inputs[0].data);
-    const im2colOutput = this.im2colKernel(padOutput);
-    const output = this.poolingKernel(im2colOutput, this.im2colShape[3]) as number[];
+    const im2colOutput = this.im2colKernel(inputs[0].data);
+    const output = this.poolingKernel(
+      im2colOutput,
+      this.im2colShape[2],
+      this.im2colShape[3],
+    ) as number[];
 
     outputs[0].setData(output);
   }

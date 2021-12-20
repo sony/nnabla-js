@@ -1,7 +1,7 @@
 import { GPU, IKernelRunShortcut } from 'gpu.js';
 import { DepthwiseConvolutionParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
-import { createPadKernel, createIm2ColKernel } from './utils';
+import { createIm2ColKernel } from './utils';
 import Variable from '../variable';
 import { getAsArrayOrThrow } from '../utils';
 
@@ -10,8 +10,6 @@ export default class DepthwiseConvolution implements FunctionImpl {
   param: DepthwiseConvolutionParameter;
 
   gpu: GPU;
-
-  padKernel: ((x: number[]) => number[]) | undefined;
 
   im2colKernel: ((x: number[]) => number[]) | undefined;
 
@@ -22,7 +20,6 @@ export default class DepthwiseConvolution implements FunctionImpl {
   constructor(param: DepthwiseConvolutionParameter, gpu: GPU) {
     this.param = param;
     this.gpu = gpu;
-    this.padKernel = undefined;
     this.im2colKernel = undefined;
     this.im2colShape = [];
     this.convKernel = undefined;
@@ -33,33 +30,25 @@ export default class DepthwiseConvolution implements FunctionImpl {
       throw Error('multiplier=1 is only supported now.');
     }
 
-    // Apply padding
-    const [padKernel, padShape] = createPadKernel(
-      this.gpu,
-      inputs[0].shape,
-      getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
-    );
-    this.padKernel = padKernel;
-
-    // Apply im2col
     [this.im2colKernel, this.im2colShape] = createIm2ColKernel(
       this.gpu,
-      padShape,
+      inputs[0].shape,
       inputs[1].shape.slice(1),
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
-      false,
+      getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
 
     // Spatial convolution
+    // (B, C, K, L) -> (B, C, L)
     this.convKernel = this.gpu
-      .createKernel(function (x: number[], w: number[], C: number, L: number, K: number): number {
-        let index = this.thread.x;
-        const bIndex = Math.floor(index / (C * L));
-        index -= bIndex * C * L;
-        const cIndex = Math.floor(index / L);
+      .createKernel(function (x: number[], w: number[], C: number, K: number, L: number): number {
+        const bIndex = Math.floor(this.thread.x / (C * L));
+        const cIndex = Math.floor((this.thread.x % (C * L)) / L);
+        const lIndex = this.thread.x % L;
         let value = 0.0;
         for (let i = 0; i < K; i += 1) {
-          value += x[K * this.thread.x + i] * w[cIndex * K + i];
+          const xIndex = bIndex * C * K * L + cIndex * K * L + i * L + lIndex;
+          value += x[xIndex] * w[cIndex * K + i];
         }
         return value;
       })
@@ -76,19 +65,14 @@ export default class DepthwiseConvolution implements FunctionImpl {
   }
 
   forward(inputs: Variable[], outputs: Variable[]): void {
-    if (
-      this.padKernel === undefined ||
-      this.im2colKernel === undefined ||
-      this.convKernel === undefined
-    ) {
+    if (this.im2colKernel === undefined || this.convKernel === undefined) {
       throw Error('call setup first.');
     }
     DepthwiseConvolution.validate(inputs, outputs);
 
-    const padOutput = this.padKernel(inputs[0].data);
-    const im2colOutput = this.im2colKernel(padOutput);
-    const [, C, L, K] = this.im2colShape;
-    const output = this.convKernel(im2colOutput, inputs[1].data, C, L, K) as number[];
+    const im2colOutput = this.im2colKernel(inputs[0].data);
+    const [, C, K, L] = this.im2colShape;
+    const output = this.convKernel(im2colOutput, inputs[1].data, C, K, L) as number[];
 
     outputs[0].setData(output);
   }
