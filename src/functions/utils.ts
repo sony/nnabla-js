@@ -145,8 +145,8 @@ export function createIm2Col2dKernel(
 
   // Calculate convoluted shape
   const oB = B;
-  const oH = (H + 2 * pH - kH) / sH + 1;
-  const oW = (W + 2 * pW - kW) / sW + 1;
+  const oH = Math.floor((H + 2 * pH - kH) / sH) + 1;
+  const oW = Math.floor((W + 2 * pW - kW) / sW) + 1;
 
   // Calculate im2col shape
   const K = kH * kW;
