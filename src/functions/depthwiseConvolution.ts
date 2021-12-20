@@ -37,20 +37,31 @@ export default class DepthwiseConvolution implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    const [, C, K, L] = this.im2colShape;
 
     // Spatial convolution
     // (B, C, K, L) -> (B, C, L)
     this.convKernel = this.gpu
-      .createKernel(function (x: number[], w: number[], C: number, K: number, L: number): number {
-        const bIndex = Math.floor(this.thread.x / (C * L));
-        const cIndex = Math.floor((this.thread.x % (C * L)) / L);
-        const lIndex = this.thread.x % L;
+      .createKernel(function (x: number[]): number {
+        const tC = this.constants.C as number;
+        const tK = this.constants.K as number;
+        const tL = this.constants.L as number;
+        const bIndex = Math.floor(this.thread.x / (tC * tL));
+        const cIndex = Math.floor((this.thread.x % (tC * tL)) / tL);
+        const lIndex = this.thread.x % tL;
         let value = 0.0;
-        for (let i = 0; i < K; i += 1) {
-          const xIndex = bIndex * C * K * L + cIndex * K * L + i * L + lIndex;
-          value += x[xIndex] * w[cIndex * K + i];
+        for (let i = 0; i < tK; i += 1) {
+          const xIndex = bIndex * tC * tL * tK + cIndex * tK * tL + i * tL + lIndex;
+          const wIndex = cIndex * tK + i;
+          value += x[xIndex] * (this.constants.w as number[])[wIndex];
         }
         return value;
+      })
+      .setConstants({
+        w: inputs[1].data,
+        C,
+        K,
+        L,
       })
       .setOutput([outputs[0].size()]);
   }
@@ -71,8 +82,7 @@ export default class DepthwiseConvolution implements FunctionImpl {
     DepthwiseConvolution.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    const [, C, K, L] = this.im2colShape;
-    const output = this.convKernel(im2colOutput, inputs[1].data, C, K, L) as number[];
+    const output = this.convKernel(im2colOutput) as number[];
 
     outputs[0].setData(output);
   }

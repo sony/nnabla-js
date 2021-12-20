@@ -49,8 +49,10 @@ test.each([
     yShape,
     transposeX,
     transposeY,
+    null,
+    null,
   );
-  const z = matmulKernel(x.data, y.data);
+  const z = matmulKernel(x.data, y.data) as number[];
 
   const xData = transposeX ? transpose(x.data, xShape) : x.data;
   xShape = transposeX ? [xShape[1], xShape[0]] : xShape;
@@ -97,8 +99,8 @@ test.each([
   const y = Variable.rand('y', yShape);
   const gpu = new GPU();
 
-  const [matmulKernel, outputShape] = createBatchMatmulKernel(gpu, xShape, yShape);
-  const z = matmulKernel(x.data, y.data);
+  const [matmulKernel, outputShape] = createBatchMatmulKernel(gpu, xShape, yShape, null, null);
+  const z = matmulKernel(x.data, y.data) as number[];
 
   const refOutputShape = [Math.max(xBatchSize, yBatchSize), 16, 64];
   const refZ = refBatchMatmul(x.data, y.data, xShape, yShape);

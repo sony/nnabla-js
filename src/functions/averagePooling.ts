@@ -38,19 +38,23 @@ export default class AveragePooling implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    const [, , K, L] = this.im2colShape;
 
     // (B, C, K, L) -> (B, C, L)
     this.poolingKernel = this.gpu
-      .createKernel(function (x: number[], K: number, L: number): number {
-        const bcIndex = Math.floor(this.thread.x / L);
-        const lIndex = this.thread.x % L;
-        const index = bcIndex * K * L + lIndex;
+      .createKernel(function (x: number[]): number {
+        const tK = this.constants.K as number;
+        const tL = this.constants.L as number;
+        const bcIndex = Math.floor(this.thread.x / tL);
+        const lIndex = this.thread.x % tL;
+        const index = bcIndex * tK * tL + lIndex;
         let sum = 0.0;
-        for (let i = 0; i < K; i += 1) {
-          sum += x[index + i * L];
+        for (let i = 0; i < tK; i += 1) {
+          sum += x[index + i * tL];
         }
-        return sum / K;
+        return sum / tK;
       })
+      .setConstants({ K, L })
       .setOutput([outputs[0].size()]);
   }
 
@@ -70,11 +74,7 @@ export default class AveragePooling implements FunctionImpl {
     AveragePooling.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    const output = this.poolingKernel(
-      im2colOutput,
-      this.im2colShape[2],
-      this.im2colShape[3],
-    ) as number[];
+    const output = this.poolingKernel(im2colOutput) as number[];
 
     outputs[0].setData(output);
   }

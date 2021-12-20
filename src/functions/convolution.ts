@@ -17,7 +17,7 @@ export default class Convolution implements FunctionImpl {
 
   biasKernel: IKernelRunShortcut | undefined;
 
-  matmulKernel: ((x: number[], y: number[]) => number[]) | undefined;
+  matmulKernel: IKernelRunShortcut | undefined;
 
   constructor(param: ConvolutionParameter, gpu: GPU) {
     this.param = param;
@@ -54,15 +54,19 @@ export default class Convolution implements FunctionImpl {
       this.gpu,
       [1, wC, kernelSize / wC],
       [B, C * K, L],
+      inputs[1].data,
+      null,
     );
 
     // Apply bias
     if (inputs.length === 3) {
       this.biasKernel = this.gpu
-        .createKernel(function (x: number[], b: number[], _C: number, _L: number): number {
-          const col = Math.floor((this.thread.x % (_C * _L)) / _L);
-          return x[this.thread.x] + b[col];
+        .createKernel(function (x: number[]): number {
+          const dataSize = (this.constants.C as number) * (this.constants.L as number);
+          const col = Math.floor((this.thread.x % dataSize) / (this.constants.L as number));
+          return x[this.thread.x] + (this.constants.bias as number[])[col];
         })
+        .setConstants({ bias: inputs[2].data, C: inputs[1].shape[0], L })
         .setOutput([outputs[0].size()]);
     }
   }
@@ -83,15 +87,10 @@ export default class Convolution implements FunctionImpl {
     Convolution.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    let output = this.matmulKernel(inputs[1].data, im2colOutput);
+    let output = this.matmulKernel(im2colOutput) as number[];
 
     if (this.biasKernel) {
-      output = this.biasKernel(
-        output,
-        inputs[2].data,
-        inputs[1].shape[0],
-        this.im2colShape[3],
-      ) as number[];
+      output = this.biasKernel(output) as number[];
     }
 
     outputs[0].setData(output);

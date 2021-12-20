@@ -37,20 +37,24 @@ export default class MaxPooling implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    const [, , K, L] = this.im2colShape;
 
     this.poolingKernel = this.gpu
-      .createKernel(function (x: number[], K: number, L: number): number {
-        const bcIndex = Math.floor(this.thread.x / L);
-        const lIndex = this.thread.x % L;
-        const index = bcIndex * K * L + lIndex;
+      .createKernel(function (x: number[]): number {
+        const tK = this.constants.K as number;
+        const tL = this.constants.L as number;
+        const bcIndex = Math.floor(this.thread.x / tL);
+        const lIndex = this.thread.x % tL;
+        const index = bcIndex * tK * tL + lIndex;
         let maxValue = x[index];
-        for (let i = 1; i < K; i += 1) {
-          if (x[index + i * L] > maxValue) {
-            maxValue = x[index + i * L];
+        for (let i = 1; i < tK; i += 1) {
+          if (x[index + i * tL] > maxValue) {
+            maxValue = x[index + i * tL];
           }
         }
         return maxValue;
       })
+      .setConstants({ K, L })
       .setOutput([outputs[0].size()]);
   }
 
@@ -70,11 +74,7 @@ export default class MaxPooling implements FunctionImpl {
     MaxPooling.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    const output = this.poolingKernel(
-      im2colOutput,
-      this.im2colShape[2],
-      this.im2colShape[3],
-    ) as number[];
+    const output = this.poolingKernel(im2colOutput) as number[];
 
     outputs[0].setData(output);
   }

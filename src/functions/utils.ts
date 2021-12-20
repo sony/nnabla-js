@@ -1,4 +1,39 @@
-import { GPU } from 'gpu.js';
+import { GPU, IKernelRunShortcut } from 'gpu.js';
+
+function matmulImpl(
+  idx: number,
+  x: number[],
+  y: number[],
+  xShape: number[],
+  yShape: number[],
+  transposeX: boolean,
+  transposeY: boolean,
+): number {
+  const [xRowSize, xColSize] = xShape;
+  const [yRowSize, yColSize] = yShape;
+  const xBase = Math.floor(idx / (transposeY ? yRowSize : yColSize));
+  const yBase = idx % (transposeY ? yRowSize : yColSize);
+  const dim = transposeX ? xRowSize : xColSize;
+  let output = 0.0;
+  for (let i = 0; i < dim; i += 1) {
+    let xValue: number = 0.0;
+    if (transposeX) {
+      xValue = x[i * xColSize + xBase];
+    } else {
+      xValue = x[xBase * xColSize + i];
+    }
+
+    let yValue: number = 0.0;
+    if (transposeY) {
+      yValue = y[yBase * yColSize + i];
+    } else {
+      yValue = y[i * yColSize + yBase];
+    }
+
+    output += xValue * yValue;
+  }
+  return output;
+}
 
 export function createMatmulKernel(
   gpu: GPU,
@@ -6,7 +41,9 @@ export function createMatmulKernel(
   yShape: number[],
   transposeX: boolean,
   transposeY: boolean,
-): [(x: number[], y: number[]) => number[], number[]] {
+  cacheX: number[] | null,
+  cacheY: number[] | null,
+): [IKernelRunShortcut, number[]] {
   if (xShape.length !== 2) {
     throw Error(`invalid x shape: ${xShape}`);
   }
@@ -26,54 +63,112 @@ export function createMatmulKernel(
     outputShape.push(yShape[1]);
   }
 
-  const kernel = gpu
-    .createKernel(function (
-      x: number[],
-      y: number[],
-      _xShape: number[],
-      _yShape: number[],
-      _transposeX: boolean,
-      _transposeY: boolean,
-    ): number {
-      const [xRowSize, xColSize] = _xShape;
-      const [yRowSize, yColSize] = _yShape;
-      const xBase = Math.floor(this.thread.x / (_transposeY ? yRowSize : yColSize));
-      const yBase = this.thread.x % (_transposeY ? yRowSize : yColSize);
-      const dim = _transposeX ? xRowSize : xColSize;
-      let output = 0.0;
-      for (let i = 0; i < dim; i += 1) {
-        let xValue: number = 0.0;
-        if (_transposeX) {
-          xValue = x[i * xColSize + xBase];
-        } else {
-          xValue = x[xBase * xColSize + i];
-        }
+  const constants: { [key: string]: any } = {
+    xShape,
+    yShape,
+    transposeX,
+    transposeY,
+  };
 
-        let yValue: number = 0.0;
-        if (_transposeY) {
-          yValue = y[yBase * yColSize + i];
-        } else {
-          yValue = y[i * yColSize + yBase];
-        }
+  gpu.addFunction(matmulImpl);
 
-        output += xValue * yValue;
-      }
-      return output;
-    })
-    .setOutput([outputShape[0] * outputShape[1]]);
-
-  function partialKernel(x: number[], y: number[]): number[] {
-    return kernel(x, y, xShape, yShape, transposeX, transposeY) as number[];
+  let kernel: IKernelRunShortcut | null = null;
+  if (cacheX !== null && cacheY !== null) {
+    kernel = gpu.createKernel(function (): number {
+      return matmulImpl(
+        this.thread.x,
+        this.constants.x as number[],
+        this.constants.y as number[],
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+        this.constants.transposeX as boolean,
+        this.constants.transposeY as boolean,
+      );
+    });
+    constants.x = cacheX;
+    constants.y = cacheY;
+  } else if (cacheX !== null && cacheY === null) {
+    kernel = gpu.createKernel(function (y: number[]): number {
+      return matmulImpl(
+        this.thread.x,
+        this.constants.x as number[],
+        y,
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+        this.constants.transposeX as boolean,
+        this.constants.transposeY as boolean,
+      );
+    });
+    constants.x = cacheX;
+  } else if (cacheX === null && cacheY !== null) {
+    kernel = gpu.createKernel(function (x: number[]): number {
+      return matmulImpl(
+        this.thread.x,
+        x,
+        this.constants.y as number[],
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+        this.constants.transposeX as boolean,
+        this.constants.transposeY as boolean,
+      );
+    });
+    constants.y = cacheY;
+  } else {
+    kernel = gpu.createKernel(function (x: number[], y: number[]): number {
+      return matmulImpl(
+        this.thread.x,
+        x,
+        y,
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+        this.constants.transposeX as boolean,
+        this.constants.transposeY as boolean,
+      );
+    });
   }
 
-  return [partialKernel, outputShape];
+  kernel.setConstants(constants).setOutput([outputShape[0] * outputShape[1]]);
+
+  return [kernel, outputShape];
+}
+
+function batchMatmulImpl(
+  idx: number,
+  x: number[],
+  y: number[],
+  xShape: number[],
+  yShape: number[],
+): number {
+  const [xBatchSize, xRowSize, xColSize] = xShape;
+  const [yBatchSize, yRowSize, yColSize] = yShape;
+  const batchIndex = Math.floor(idx / (xRowSize * yColSize));
+  const xBatch = xBatchSize === 1 ? 0 : batchIndex;
+  const yBatch = yBatchSize === 1 ? 0 : batchIndex;
+  const xOffset = xBatch * xRowSize * xColSize;
+  const yOffset = yBatch * yRowSize * yColSize;
+  const xBase = Math.floor((idx % (xRowSize * yColSize)) / yColSize);
+  const yBase = idx % yColSize;
+  const dim = xColSize;
+  let output = 0.0;
+  for (let i = 0; i < dim; i += 1) {
+    let xValue: number = 0.0;
+    xValue = x[xOffset + xBase * xColSize + i];
+
+    let yValue: number = 0.0;
+    yValue = y[yOffset + i * yColSize + yBase];
+
+    output += xValue * yValue;
+  }
+  return output;
 }
 
 export function createBatchMatmulKernel(
   gpu: GPU,
   xShape: number[],
   yShape: number[],
-): [(x: number[], y: number[]) => number[], number[]] {
+  cacheX: number[] | null,
+  cacheY: number[] | null,
+): [IKernelRunShortcut, number[]] {
   if (xShape.length !== 3) {
     throw Error(`invalid x shape: ${xShape}`);
   }
@@ -89,42 +184,60 @@ export function createBatchMatmulKernel(
   outputShape.push(xShape[1]);
   outputShape.push(yShape[2]);
 
-  const kernel = gpu
-    .createKernel(function (
-      x: number[],
-      y: number[],
-      _xShape: number[],
-      _yShape: number[],
-    ): number {
-      const [xBatchSize, xRowSize, xColSize] = _xShape;
-      const [yBatchSize, yRowSize, yColSize] = _yShape;
-      const batchIndex = Math.floor(this.thread.x / (xRowSize * yColSize));
-      const xBatch = xBatchSize === 1 ? 0 : batchIndex;
-      const yBatch = yBatchSize === 1 ? 0 : batchIndex;
-      const xOffset = xBatch * xRowSize * xColSize;
-      const yOffset = yBatch * yRowSize * yColSize;
-      const xBase = Math.floor((this.thread.x % (xRowSize * yColSize)) / yColSize);
-      const yBase = this.thread.x % yColSize;
-      const dim = xColSize;
-      let output = 0.0;
-      for (let i = 0; i < dim; i += 1) {
-        let xValue: number = 0.0;
-        xValue = x[xOffset + xBase * xColSize + i];
+  const constants: { [key: string]: any } = { xShape, yShape };
 
-        let yValue: number = 0.0;
-        yValue = y[yOffset + i * yColSize + yBase];
+  gpu.addFunction(batchMatmulImpl);
 
-        output += xValue * yValue;
-      }
-      return output;
-    })
-    .setOutput([outputShape[0] * outputShape[1] * outputShape[2]]);
-
-  function partialKernel(x: number[], y: number[]): number[] {
-    return kernel(x, y, xShape, yShape) as number[];
+  let kernel: IKernelRunShortcut | null = null;
+  if (cacheX !== null && cacheY !== null) {
+    kernel = gpu.createKernel(function (): number {
+      return batchMatmulImpl(
+        this.thread.x,
+        this.constants.x as number[],
+        this.constants.y as number[],
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+      );
+    });
+    constants.x = cacheX;
+    constants.y = cacheY;
+  } else if (cacheX !== null && cacheY === null) {
+    kernel = gpu.createKernel(function (y: number[]): number {
+      return batchMatmulImpl(
+        this.thread.x,
+        this.constants.x as number[],
+        y,
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+      );
+    });
+    constants.x = cacheX;
+  } else if (cacheX === null && cacheY !== null) {
+    kernel = gpu.createKernel(function (x: number[]): number {
+      return batchMatmulImpl(
+        this.thread.x,
+        x,
+        this.constants.y as number[],
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+      );
+    });
+    constants.y = cacheY;
+  } else {
+    kernel = gpu.createKernel(function (x: number[], y: number[]): number {
+      return batchMatmulImpl(
+        this.thread.x,
+        x,
+        y,
+        this.constants.xShape as number[],
+        this.constants.yShape as number[],
+      );
+    });
   }
 
-  return [partialKernel, outputShape];
+  kernel.setConstants(constants).setOutput([outputShape[0] * outputShape[1] * outputShape[2]]);
+
+  return [kernel, outputShape];
 }
 
 export function createIm2Col2dKernel(

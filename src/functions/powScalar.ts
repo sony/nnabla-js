@@ -18,9 +18,10 @@ export default class PowScalar implements FunctionImpl {
 
   setup(_: Variable[], outputs: Variable[]): void {
     this.kernel = this.gpu
-      .createKernel(function (x: number[], val: number): number {
-        return x[this.thread.x] ** val;
+      .createKernel(function (x: number[]): number {
+        return x[this.thread.x] ** (this.constants.val as number);
       })
+      .setConstants({ val: this.param.getVal() })
       .setOutput([outputs[0].size()]);
   }
 
@@ -39,7 +40,7 @@ export default class PowScalar implements FunctionImpl {
     }
     PowScalar.validate(inputs, outputs);
 
-    const output = this.kernel(inputs[0].data, this.param.getVal()) as number[];
+    const output = this.kernel(inputs[0].data) as number[];
     outputs[0].setData(output);
   }
 }
