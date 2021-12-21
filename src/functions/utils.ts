@@ -1,40 +1,5 @@
 import { GPU, IKernelRunShortcut } from 'gpu.js';
 
-function matmulImpl(
-  idx: number,
-  x: number[],
-  y: number[],
-  xShape: number[],
-  yShape: number[],
-  transposeX: boolean,
-  transposeY: boolean,
-): number {
-  const [xRowSize, xColSize] = xShape;
-  const [yRowSize, yColSize] = yShape;
-  const xBase = Math.floor(idx / (transposeY ? yRowSize : yColSize));
-  const yBase = idx % (transposeY ? yRowSize : yColSize);
-  const dim = transposeX ? xRowSize : xColSize;
-  let output = 0.0;
-  for (let i = 0; i < dim; i += 1) {
-    let xValue: number = 0.0;
-    if (transposeX) {
-      xValue = x[i * xColSize + xBase];
-    } else {
-      xValue = x[xBase * xColSize + i];
-    }
-
-    let yValue: number = 0.0;
-    if (transposeY) {
-      yValue = y[yBase * yColSize + i];
-    } else {
-      yValue = y[i * yColSize + yBase];
-    }
-
-    output += xValue * yValue;
-  }
-  return output;
-}
-
 export function createMatmulKernel(
   gpu: GPU,
   xShape: number[],
@@ -70,96 +35,140 @@ export function createMatmulKernel(
     transposeY,
   };
 
-  gpu.addFunction(matmulImpl);
-
   let kernel: IKernelRunShortcut | null = null;
   if (cacheX !== null && cacheY !== null) {
     kernel = gpu.createKernel(function (): number {
-      return matmulImpl(
-        this.thread.x,
-        this.constants.x as number[],
-        this.constants.y as number[],
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-        this.constants.transposeX as boolean,
-        this.constants.transposeY as boolean,
+      const xRowSize = (this.constants.xShape as number[])[0];
+      const xColSize = (this.constants.xShape as number[])[1];
+      const yRowSize = (this.constants.yShape as number[])[0];
+      const yColSize = (this.constants.yShape as number[])[1];
+      const xBase = Math.floor(
+        this.thread.x / ((this.constants.transposeY as boolean) ? yRowSize : yColSize),
       );
+      const yBase = this.thread.x % ((this.constants.transposeY as boolean) ? yRowSize : yColSize);
+      const dim = (this.constants.transposeX as boolean) ? xRowSize : xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        if (this.constants.transposeX) {
+          xValue = (this.constants.x as number[])[i * xColSize + xBase];
+        } else {
+          xValue = (this.constants.x as number[])[xBase * xColSize + i];
+        }
+
+        let yValue: number = 0.0;
+        if (this.constants.transposeY) {
+          yValue = (this.constants.y as number[])[yBase * yColSize + i];
+        } else {
+          yValue = (this.constants.y as number[])[i * yColSize + yBase];
+        }
+
+        output += xValue * yValue;
+      }
+      return output;
     });
     constants.x = cacheX;
     constants.y = cacheY;
   } else if (cacheX !== null && cacheY === null) {
     kernel = gpu.createKernel(function (y: number[]): number {
-      return matmulImpl(
-        this.thread.x,
-        this.constants.x as number[],
-        y,
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-        this.constants.transposeX as boolean,
-        this.constants.transposeY as boolean,
+      const xRowSize = (this.constants.xShape as number[])[0];
+      const xColSize = (this.constants.xShape as number[])[1];
+      const yRowSize = (this.constants.yShape as number[])[0];
+      const yColSize = (this.constants.yShape as number[])[1];
+      const xBase = Math.floor(
+        this.thread.x / ((this.constants.transposeY as boolean) ? yRowSize : yColSize),
       );
+      const yBase = this.thread.x % ((this.constants.transposeY as boolean) ? yRowSize : yColSize);
+      const dim = (this.constants.transposeX as boolean) ? xRowSize : xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        if (this.constants.transposeX) {
+          xValue = (this.constants.x as number[])[i * xColSize + xBase];
+        } else {
+          xValue = (this.constants.x as number[])[xBase * xColSize + i];
+        }
+
+        let yValue: number = 0.0;
+        if (this.constants.transposeY) {
+          yValue = y[yBase * yColSize + i];
+        } else {
+          yValue = y[i * yColSize + yBase];
+        }
+
+        output += xValue * yValue;
+      }
+      return output;
     });
     constants.x = cacheX;
   } else if (cacheX === null && cacheY !== null) {
     kernel = gpu.createKernel(function (x: number[]): number {
-      return matmulImpl(
-        this.thread.x,
-        x,
-        this.constants.y as number[],
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-        this.constants.transposeX as boolean,
-        this.constants.transposeY as boolean,
+      const xRowSize = (this.constants.xShape as number[])[0];
+      const xColSize = (this.constants.xShape as number[])[1];
+      const yRowSize = (this.constants.yShape as number[])[0];
+      const yColSize = (this.constants.yShape as number[])[1];
+      const xBase = Math.floor(
+        this.thread.x / ((this.constants.transposeY as boolean) ? yRowSize : yColSize),
       );
+      const yBase = this.thread.x % ((this.constants.transposeY as boolean) ? yRowSize : yColSize);
+      const dim = (this.constants.transposeX as boolean) ? xRowSize : xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        if (this.constants.transposeX) {
+          xValue = x[i * xColSize + xBase];
+        } else {
+          xValue = x[xBase * xColSize + i];
+        }
+
+        let yValue: number = 0.0;
+        if (this.constants.transposeY) {
+          yValue = (this.constants.y as number[])[yBase * yColSize + i];
+        } else {
+          yValue = (this.constants.y as number[])[i * yColSize + yBase];
+        }
+
+        output += xValue * yValue;
+      }
+      return output;
     });
     constants.y = cacheY;
   } else {
     kernel = gpu.createKernel(function (x: number[], y: number[]): number {
-      return matmulImpl(
-        this.thread.x,
-        x,
-        y,
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-        this.constants.transposeX as boolean,
-        this.constants.transposeY as boolean,
+      const xRowSize = (this.constants.xShape as number[])[0];
+      const xColSize = (this.constants.xShape as number[])[1];
+      const yRowSize = (this.constants.yShape as number[])[0];
+      const yColSize = (this.constants.yShape as number[])[1];
+      const xBase = Math.floor(
+        this.thread.x / ((this.constants.transposeY as boolean) ? yRowSize : yColSize),
       );
+      const yBase = this.thread.x % ((this.constants.transposeY as boolean) ? yRowSize : yColSize);
+      const dim = (this.constants.transposeX as boolean) ? xRowSize : xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        if (this.constants.transposeX) {
+          xValue = x[i * xColSize + xBase];
+        } else {
+          xValue = x[xBase * xColSize + i];
+        }
+
+        let yValue: number = 0.0;
+        if (this.constants.transposeY) {
+          yValue = y[yBase * yColSize + i];
+        } else {
+          yValue = y[i * yColSize + yBase];
+        }
+
+        output += xValue * yValue;
+      }
+      return output;
     });
   }
 
   kernel.setConstants(constants).setOutput([outputShape[0] * outputShape[1]]);
 
   return [kernel, outputShape];
-}
-
-function batchMatmulImpl(
-  idx: number,
-  x: number[],
-  y: number[],
-  xShape: number[],
-  yShape: number[],
-): number {
-  const [xBatchSize, xRowSize, xColSize] = xShape;
-  const [yBatchSize, yRowSize, yColSize] = yShape;
-  const batchIndex = Math.floor(idx / (xRowSize * yColSize));
-  const xBatch = xBatchSize === 1 ? 0 : batchIndex;
-  const yBatch = yBatchSize === 1 ? 0 : batchIndex;
-  const xOffset = xBatch * xRowSize * xColSize;
-  const yOffset = yBatch * yRowSize * yColSize;
-  const xBase = Math.floor((idx % (xRowSize * yColSize)) / yColSize);
-  const yBase = idx % yColSize;
-  const dim = xColSize;
-  let output = 0.0;
-  for (let i = 0; i < dim; i += 1) {
-    let xValue: number = 0.0;
-    xValue = x[xOffset + xBase * xColSize + i];
-
-    let yValue: number = 0.0;
-    yValue = y[yOffset + i * yColSize + yBase];
-
-    output += xValue * yValue;
-  }
-  return output;
 }
 
 export function createBatchMatmulKernel(
@@ -186,52 +195,122 @@ export function createBatchMatmulKernel(
 
   const constants: { [key: string]: any } = { xShape, yShape };
 
-  gpu.addFunction(batchMatmulImpl);
-
   let kernel: IKernelRunShortcut | null = null;
   if (cacheX !== null && cacheY !== null) {
     kernel = gpu.createKernel(function (): number {
-      return batchMatmulImpl(
-        this.thread.x,
-        this.constants.x as number[],
-        this.constants.y as number[],
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-      );
+      const xBatchSize = (this.constants.xShape as number[])[0];
+      const xRowSize = (this.constants.xShape as number[])[1];
+      const xColSize = (this.constants.xShape as number[])[2];
+      const yBatchSize = (this.constants.yShape as number[])[0];
+      const yRowSize = (this.constants.yShape as number[])[1];
+      const yColSize = (this.constants.yShape as number[])[2];
+      const batchIndex = Math.floor(this.thread.x / (xRowSize * yColSize));
+      const xBatch = xBatchSize === 1 ? 0 : batchIndex;
+      const yBatch = yBatchSize === 1 ? 0 : batchIndex;
+      const xOffset = xBatch * xRowSize * xColSize;
+      const yOffset = yBatch * yRowSize * yColSize;
+      const xBase = Math.floor((this.thread.x % (xRowSize * yColSize)) / yColSize);
+      const yBase = this.thread.x % yColSize;
+      const dim = xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        xValue = (this.constants.x as number[])[xOffset + xBase * xColSize + i];
+
+        let yValue: number = 0.0;
+        yValue = (this.constants.y as number[])[yOffset + i * yColSize + yBase];
+
+        output += xValue * yValue;
+      }
+      return output;
     });
     constants.x = cacheX;
     constants.y = cacheY;
   } else if (cacheX !== null && cacheY === null) {
     kernel = gpu.createKernel(function (y: number[]): number {
-      return batchMatmulImpl(
-        this.thread.x,
-        this.constants.x as number[],
-        y,
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-      );
+      const xBatchSize = (this.constants.xShape as number[])[0];
+      const xRowSize = (this.constants.xShape as number[])[1];
+      const xColSize = (this.constants.xShape as number[])[2];
+      const yBatchSize = (this.constants.yShape as number[])[0];
+      const yRowSize = (this.constants.yShape as number[])[1];
+      const yColSize = (this.constants.yShape as number[])[2];
+      const batchIndex = Math.floor(this.thread.x / (xRowSize * yColSize));
+      const xBatch = xBatchSize === 1 ? 0 : batchIndex;
+      const yBatch = yBatchSize === 1 ? 0 : batchIndex;
+      const xOffset = xBatch * xRowSize * xColSize;
+      const yOffset = yBatch * yRowSize * yColSize;
+      const xBase = Math.floor((this.thread.x % (xRowSize * yColSize)) / yColSize);
+      const yBase = this.thread.x % yColSize;
+      const dim = xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        xValue = (this.constants.x as number[])[xOffset + xBase * xColSize + i];
+
+        let yValue: number = 0.0;
+        yValue = y[yOffset + i * yColSize + yBase];
+
+        output += xValue * yValue;
+      }
+      return output;
     });
     constants.x = cacheX;
   } else if (cacheX === null && cacheY !== null) {
     kernel = gpu.createKernel(function (x: number[]): number {
-      return batchMatmulImpl(
-        this.thread.x,
-        x,
-        this.constants.y as number[],
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-      );
+      const xBatchSize = (this.constants.xShape as number[])[0];
+      const xRowSize = (this.constants.xShape as number[])[1];
+      const xColSize = (this.constants.xShape as number[])[2];
+      const yBatchSize = (this.constants.yShape as number[])[0];
+      const yRowSize = (this.constants.yShape as number[])[1];
+      const yColSize = (this.constants.yShape as number[])[2];
+      const batchIndex = Math.floor(this.thread.x / (xRowSize * yColSize));
+      const xBatch = xBatchSize === 1 ? 0 : batchIndex;
+      const yBatch = yBatchSize === 1 ? 0 : batchIndex;
+      const xOffset = xBatch * xRowSize * xColSize;
+      const yOffset = yBatch * yRowSize * yColSize;
+      const xBase = Math.floor((this.thread.x % (xRowSize * yColSize)) / yColSize);
+      const yBase = this.thread.x % yColSize;
+      const dim = xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        xValue = x[xOffset + xBase * xColSize + i];
+
+        let yValue: number = 0.0;
+        yValue = (this.constants.y as number[])[yOffset + i * yColSize + yBase];
+
+        output += xValue * yValue;
+      }
+      return output;
     });
     constants.y = cacheY;
   } else {
     kernel = gpu.createKernel(function (x: number[], y: number[]): number {
-      return batchMatmulImpl(
-        this.thread.x,
-        x,
-        y,
-        this.constants.xShape as number[],
-        this.constants.yShape as number[],
-      );
+      const xBatchSize = (this.constants.xShape as number[])[0];
+      const xRowSize = (this.constants.xShape as number[])[1];
+      const xColSize = (this.constants.xShape as number[])[2];
+      const yBatchSize = (this.constants.yShape as number[])[0];
+      const yRowSize = (this.constants.yShape as number[])[1];
+      const yColSize = (this.constants.yShape as number[])[2];
+      const batchIndex = Math.floor(this.thread.x / (xRowSize * yColSize));
+      const xBatch = xBatchSize === 1 ? 0 : batchIndex;
+      const yBatch = yBatchSize === 1 ? 0 : batchIndex;
+      const xOffset = xBatch * xRowSize * xColSize;
+      const yOffset = yBatch * yRowSize * yColSize;
+      const xBase = Math.floor((this.thread.x % (xRowSize * yColSize)) / yColSize);
+      const yBase = this.thread.x % yColSize;
+      const dim = xColSize;
+      let output = 0.0;
+      for (let i = 0; i < dim; i += 1) {
+        let xValue: number = 0.0;
+        xValue = x[xOffset + xBase * xColSize + i];
+
+        let yValue: number = 0.0;
+        yValue = y[yOffset + i * yColSize + yBase];
+
+        output += xValue * yValue;
+      }
+      return output;
     });
   }
 

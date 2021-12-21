@@ -42,17 +42,15 @@ export default class BatchNormalization implements FunctionImpl {
         const tSpatialSize = this.constants.spatialSize as number;
         const tTargetAxisSize = this.constants.targetAxisSize as number;
         const tEps = this.constants.eps as number;
-        const tMean = this.constants.mean as number[];
-        const tVars = this.constants.vars as number[];
-        const tGamma = this.constants.gamma as number[];
-        const tBeta = this.constants.beta as number[];
         const tNoScale = this.constants.noScale as boolean;
         const tNoBias = this.constants.noBias as boolean;
         const index = Math.floor((this.thread.x % (tSpatialSize * tTargetAxisSize)) / tSpatialSize);
-        const stddev = Math.sqrt(tVars[index] + tEps);
-        const scale = tNoScale ? 1.0 : tGamma[index];
-        const bias = tNoBias ? 0.0 : tBeta[index];
-        return ((x[this.thread.x] - tMean[index]) * scale) / stddev + bias;
+        const stddev = Math.sqrt((this.constants.vars as number[])[index] + tEps);
+        const scale = tNoScale ? 1.0 : (this.constants.gamma as number[])[index];
+        const bias = tNoBias ? 0.0 : (this.constants.beta as number[])[index];
+        return (
+          ((x[this.thread.x] - (this.constants.mean as number[])[index]) * scale) / stddev + bias
+        );
       })
       .setConstants({
         mean,
