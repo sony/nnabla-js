@@ -59,20 +59,18 @@ export default class Convolution implements FunctionImpl {
       this.gpu,
       [1, wC, kernelSize / wC],
       [B, C * K, L],
-      inputs[1].data as number[],
-      null,
     );
     this.matmulKernel.setPipeline(true);
 
     // Apply bias
     if (inputs.length === 3) {
       this.biasKernel = this.gpu
-        .createKernel(function (x: number[]): number {
+        .createKernel(function (x: number[], b: number[]): number {
           const dataSize = (this.constants.C as number) * (this.constants.L as number);
           const col = Math.floor((this.thread.x % dataSize) / (this.constants.L as number));
-          return x[this.thread.x] + (this.constants.bias as number[])[col];
+          return x[this.thread.x] + b[col];
         })
-        .setConstants({ bias: inputs[2].data, C: inputs[1].shape[0], L })
+        .setConstants({ C: inputs[1].shape[0], L })
         .setOutput([outputs[0].size()])
         .setPipeline(true);
     }
@@ -94,10 +92,10 @@ export default class Convolution implements FunctionImpl {
     Convolution.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    let output = this.matmulKernel(im2colOutput) as Texture;
+    let output = this.matmulKernel(inputs[1].data, im2colOutput) as Texture;
 
     if (this.biasKernel) {
-      output = this.biasKernel(output) as Texture;
+      output = this.biasKernel(output, inputs[2].data) as Texture;
     }
 
     outputs[0].setData(output);

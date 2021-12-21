@@ -43,7 +43,7 @@ export default class DepthwiseConvolution implements FunctionImpl {
     // Spatial convolution
     // (B, C, K, L) -> (B, C, L)
     this.convKernel = this.gpu
-      .createKernel(function (x: number[]): number {
+      .createKernel(function (x: number[], w: number[]): number {
         const tC = this.constants.C as number;
         const tK = this.constants.K as number;
         const tL = this.constants.L as number;
@@ -54,12 +54,11 @@ export default class DepthwiseConvolution implements FunctionImpl {
         for (let i = 0; i < tK; i += 1) {
           const xIndex = bIndex * tC * tL * tK + cIndex * tK * tL + i * tL + lIndex;
           const wIndex = cIndex * tK + i;
-          value += x[xIndex] * (this.constants.w as number[])[wIndex];
+          value += x[xIndex] * w[wIndex];
         }
         return value;
       })
       .setConstants({
-        w: inputs[1].data,
         C,
         K,
         L,
@@ -84,7 +83,7 @@ export default class DepthwiseConvolution implements FunctionImpl {
     DepthwiseConvolution.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    const output = this.convKernel(im2colOutput) as Texture;
+    const output = this.convKernel(im2colOutput, inputs[1].data) as Texture;
 
     outputs[0].setData(output);
   }

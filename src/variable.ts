@@ -7,6 +7,10 @@ interface IFunction {
   forward(): void;
 }
 
+function checkTexture(value: number[] | Texture): boolean {
+  return Object.prototype.hasOwnProperty.call(value, "texture");
+}
+
 export default class Variable {
   name: string;
 
@@ -73,18 +77,19 @@ export default class Variable {
   }
 
   setData(data: number[] | Texture): void {
-    if (Array.isArray(data)) {
-      if (data.length !== this.size()) {
-        throw Error(`the data size does not match: execpted=${this.size()} actual=${data.length}`);
+    if (!checkTexture(data)) {
+      const tData = data as number[];
+      if (tData.length !== this.size()) {
+        throw Error(`the data size does not match: execpted=${this.size()} actual=${tData.length}`);
       }
-      this.data = Array.from(data);
+      this.data = Array.from(tData);
     } else {
       this.data = data;
     }
   }
 
   toArray(): number[] {
-    if (Object.prototype.hasOwnProperty.call(this.data, 'toArray')) {
+    if (checkTexture(this.data)) {
       return (this.data as Texture).toArray() as number[];
     }
     return this.data as number[];

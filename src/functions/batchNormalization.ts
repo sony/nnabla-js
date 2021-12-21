@@ -10,10 +10,15 @@ export default class BatchNormalization implements FunctionImpl {
 
   kernel: IKernelRunShortcut | undefined;
 
+  noBias: boolean;
+  noScale: boolean;
+
   constructor(param: BatchNormalizationParameter, gpu: GPU) {
     this.param = param;
     this.gpu = gpu;
     this.kernel = undefined;
+    this.noBias = false;
+    this.noScale = false;
   }
 
   setup(inputs: Variable[], outputs: Variable[]): void {
@@ -21,8 +26,8 @@ export default class BatchNormalization implements FunctionImpl {
       throw Error('batch_stat=True is not supported.');
     }
 
-    const noBias = inputs.length < 5;
-    const noScale = inputs.length < 4;
+    this.noBias = inputs.length < 5;
+    this.noScale = inputs.length < 4;
 
     const axis = this.param.getAxesList()[0];
     let spatialSize = 1;
@@ -31,35 +36,25 @@ export default class BatchNormalization implements FunctionImpl {
     }
     const targetAxisSize = inputs[0].shape[axis];
 
-    const inputLen = inputs.length;
-    const mean = inputs[inputLen - 2].data;
-    const vars = inputs[inputLen - 1].data;
-    const beta: number[] = noBias ? [] : (inputs[1].data as number[]);
-    const gamma: number[] = noScale ? [] : (inputs[noBias ? 1 : 2].data as number[]);
-
     this.kernel = this.gpu
-      .createKernel(function (x: number[]): number {
+      .createKernel(function (x: number[], mean: number[], vars: number[], beta: number[], gamma: number[]): number {
         const tSpatialSize = this.constants.spatialSize as number;
         const tTargetAxisSize = this.constants.targetAxisSize as number;
         const tEps = this.constants.eps as number;
         const tNoScale = this.constants.noScale as boolean;
         const tNoBias = this.constants.noBias as boolean;
         const index = Math.floor((this.thread.x % (tSpatialSize * tTargetAxisSize)) / tSpatialSize);
-        const stddev = Math.sqrt((this.constants.vars as number[])[index] + tEps);
-        const scale = tNoScale ? 1.0 : (this.constants.gamma as number[])[index];
-        const bias = tNoBias ? 0.0 : (this.constants.beta as number[])[index];
+        const stddev = Math.sqrt(vars[index] + tEps);
+        const scale = tNoScale ? 1.0 : gamma[index];
+        const bias = tNoBias ? 0.0 : beta[index];
         return (
-          ((x[this.thread.x] - (this.constants.mean as number[])[index]) * scale) / stddev + bias
+          ((x[this.thread.x] - mean[index]) * scale) / stddev + bias
         );
       })
       .setConstants({
-        mean,
-        vars,
-        beta,
-        gamma,
         eps: this.param.getEps(),
-        noBias,
-        noScale,
+        noBias: this.noBias,
+        noScale: this.noScale,
         spatialSize,
         targetAxisSize,
       })
@@ -82,7 +77,13 @@ export default class BatchNormalization implements FunctionImpl {
     }
     BatchNormalization.validate(inputs, outputs);
 
-    const output = this.kernel(inputs[0].data) as number[];
+    const inputLen = inputs.length;
+    const mean = inputs[inputLen - 2].data;
+    const vars = inputs[inputLen - 1].data;
+    const beta: number[] = this.noBias ? [] : (inputs[1].data as number[]);
+    const gamma: number[] = this.noScale ? [] : (inputs[this.noBias ? 1 : 2].data as number[]);
+
+    const output = this.kernel(inputs[0].data, mean, vars, beta, gamma) as number[];
 
     outputs[0].setData(output);
   }
