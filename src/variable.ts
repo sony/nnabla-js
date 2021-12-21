@@ -1,4 +1,4 @@
-import { Texture } from 'gpu.js';
+import { Texture, GPU } from 'gpu.js';
 import { Parameter, Variable as ProtoVariable } from './proto/nnabla_pb';
 import { getAsArrayOrThrow } from './utils';
 
@@ -8,7 +8,7 @@ interface IFunction {
 }
 
 function checkTexture(value: number[] | Texture): boolean {
-  return Object.prototype.hasOwnProperty.call(value, "texture");
+  return Object.prototype.hasOwnProperty.call(value, 'texture');
 }
 
 export default class Variable {
@@ -93,5 +93,19 @@ export default class Variable {
       return (this.data as Texture).toArray() as number[];
     }
     return this.data as number[];
+  }
+
+  isTexture(): boolean {
+    return checkTexture(this.data);
+  }
+
+  cache(gpu: GPU): void {
+    const kernel = gpu
+      .createKernel(function (x: number[]): number {
+        return x[this.thread.x];
+      })
+      .setOutput([this.size()])
+      .setPipeline(true);
+    this.data = kernel(this.data) as Texture;
   }
 }

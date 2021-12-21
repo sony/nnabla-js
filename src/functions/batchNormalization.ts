@@ -11,6 +11,7 @@ export default class BatchNormalization implements FunctionImpl {
   kernel: IKernelRunShortcut | undefined;
 
   noBias: boolean;
+
   noScale: boolean;
 
   constructor(param: BatchNormalizationParameter, gpu: GPU) {
@@ -37,7 +38,13 @@ export default class BatchNormalization implements FunctionImpl {
     const targetAxisSize = inputs[0].shape[axis];
 
     this.kernel = this.gpu
-      .createKernel(function (x: number[], mean: number[], vars: number[], beta: number[], gamma: number[]): number {
+      .createKernel(function (
+        x: number[],
+        mean: number[],
+        vars: number[],
+        beta: number[],
+        gamma: number[],
+      ): number {
         const tSpatialSize = this.constants.spatialSize as number;
         const tTargetAxisSize = this.constants.targetAxisSize as number;
         const tEps = this.constants.eps as number;
@@ -47,9 +54,7 @@ export default class BatchNormalization implements FunctionImpl {
         const stddev = Math.sqrt(vars[index] + tEps);
         const scale = tNoScale ? 1.0 : gamma[index];
         const bias = tNoBias ? 0.0 : beta[index];
-        return (
-          ((x[this.thread.x] - mean[index]) * scale) / stddev + bias
-        );
+        return ((x[this.thread.x] - mean[index]) * scale) / stddev + bias;
       })
       .setConstants({
         eps: this.param.getEps(),
@@ -78,10 +83,29 @@ export default class BatchNormalization implements FunctionImpl {
     BatchNormalization.validate(inputs, outputs);
 
     const inputLen = inputs.length;
+    const betaIndex: number = this.noBias ? -1 : 1;
+    const gammaIndex: number = this.noScale ? -1 : this.noBias ? 1 : 2;
+
+    if (!inputs[inputLen - 2].isTexture()) {
+      inputs[inputLen - 2].cache(this.gpu);
+    }
+
+    if (!inputs[inputLen - 1].isTexture()) {
+      inputs[inputLen - 1].cache(this.gpu);
+    }
+
+    if (betaIndex > -1 && !inputs[betaIndex].isTexture()) {
+      inputs[betaIndex].cache(this.gpu);
+    }
+
+    if (gammaIndex > -1 && !inputs[gammaIndex].isTexture()) {
+      inputs[gammaIndex].cache(this.gpu);
+    }
+
     const mean = inputs[inputLen - 2].data;
     const vars = inputs[inputLen - 1].data;
-    const beta: number[] = this.noBias ? [] : (inputs[1].data as number[]);
-    const gamma: number[] = this.noScale ? [] : (inputs[this.noBias ? 1 : 2].data as number[]);
+    const beta = betaIndex > -1 ? inputs[betaIndex].data : [];
+    const gamma = gammaIndex > -1 ? inputs[gammaIndex].data : [];
 
     const output = this.kernel(inputs[0].data, mean, vars, beta, gamma) as number[];
 

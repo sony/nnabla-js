@@ -91,10 +91,17 @@ export default class Convolution implements FunctionImpl {
     }
     Convolution.validate(inputs, outputs);
 
+    if (!inputs[1].isTexture()) {
+      inputs[1].cache(this.gpu);
+    }
+
     const im2colOutput = this.im2colKernel(inputs[0].data);
     let output = this.matmulKernel(inputs[1].data, im2colOutput) as Texture;
 
     if (this.biasKernel) {
+      if (!inputs[2].isTexture()) {
+        inputs[2].cache(this.gpu);
+      }
       output = this.biasKernel(output, inputs[2].data) as Texture;
     }
 

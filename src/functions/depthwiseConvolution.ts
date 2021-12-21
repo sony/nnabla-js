@@ -82,6 +82,10 @@ export default class DepthwiseConvolution implements FunctionImpl {
     }
     DepthwiseConvolution.validate(inputs, outputs);
 
+    if (!inputs[1].isTexture()) {
+      inputs[1].cache(this.gpu);
+    }
+
     const im2colOutput = this.im2colKernel(inputs[0].data);
     const output = this.convKernel(im2colOutput, inputs[1].data) as Texture;
 

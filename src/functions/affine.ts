@@ -67,9 +67,16 @@ export default class Affine implements FunctionImpl {
     }
     Affine.validate(inputs, outputs);
 
+    if (!inputs[1].isTexture()) {
+      inputs[1].cache(this.gpu);
+    }
+
     let output = this.matmulKernel(inputs[0].data, inputs[1].data) as number[];
 
     if (this.biasKernel) {
+      if (!inputs[2].isTexture()) {
+        inputs[2].cache(this.gpu);
+      }
       output = this.biasKernel(output, inputs[2].data) as number[];
     }
     outputs[0].setData(output);
