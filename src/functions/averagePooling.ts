@@ -10,7 +10,7 @@ export default class AveragePooling implements FunctionImpl {
 
   gpu: GPU;
 
-  im2colKernel: ((x: number[]) => number[]) | undefined;
+  im2colKernel: IKernelRunShortcut | undefined;
 
   im2colShape: number[];
 
@@ -38,6 +38,7 @@ export default class AveragePooling implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    this.im2colKernel.setPipeline(true);
     const [, , K, L] = this.im2colShape;
 
     // (B, C, K, L) -> (B, C, L)
@@ -55,7 +56,8 @@ export default class AveragePooling implements FunctionImpl {
         return sum / tK;
       })
       .setConstants({ K, L })
-      .setOutput([outputs[0].size()]);
+      .setOutput([outputs[0].size()])
+      .setPipeline(true);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {

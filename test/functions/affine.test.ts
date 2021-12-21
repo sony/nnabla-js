@@ -40,9 +40,10 @@ test('test-affine', () => {
 
   affine.setup([x, w, b], [y]);
   affine.forward([x, w, b], [y]);
+  const yData = y.toArray();
 
-  const yRef = affineRef(x.data, w.data, b.data, x.shape, w.shape);
+  const yRef = affineRef(x.toArray(), w.toArray(), b.toArray(), x.shape, w.shape);
   for (let i = 0; i < yRef.length; i += 1) {
-    expectClose(y.data[i], yRef[i], 0.00001);
+    expectClose(yData[i], yRef[i], 0.00001);
   }
 });

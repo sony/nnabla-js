@@ -52,11 +52,11 @@ test.each([
     null,
     null,
   );
-  const z = matmulKernel(x.data, y.data) as number[];
+  const z = matmulKernel(x.toArray(), y.toArray()) as number[];
 
-  const xData = transposeX ? transpose(x.data, xShape) : x.data;
+  const xData = transposeX ? transpose(x.toArray(), xShape) : x.toArray();
   xShape = transposeX ? [xShape[1], xShape[0]] : xShape;
-  const yData = transposeY ? transpose(y.data, yShape) : y.data;
+  const yData = transposeY ? transpose(y.toArray(), yShape) : y.toArray();
   yShape = transposeY ? [yShape[1], yShape[0]] : yShape;
 
   const refOutputShape = [32, 64];
@@ -100,10 +100,10 @@ test.each([
   const gpu = new GPU();
 
   const [matmulKernel, outputShape] = createBatchMatmulKernel(gpu, xShape, yShape, null, null);
-  const z = matmulKernel(x.data, y.data) as number[];
+  const z = matmulKernel(x.toArray(), y.toArray()) as number[];
 
   const refOutputShape = [Math.max(xBatchSize, yBatchSize), 16, 64];
-  const refZ = refBatchMatmul(x.data, y.data, xShape, yShape);
+  const refZ = refBatchMatmul(x.toArray(), y.toArray(), xShape, yShape);
   expect(outputShape).toEqual(refOutputShape);
   expectAllClose(z, refZ, 0.0001);
 });
@@ -164,11 +164,11 @@ test('test-im2col', () => {
   const outWidth = outHeight;
 
   const [im2col, outputShape] = createIm2ColKernel(gpu, shape, [2, 2], stride, [0, 0]);
-  const y = im2col(x.data);
+  const y = im2col(x.toArray()) as number[];
 
   const refOutputShape = [32, 3, 4, outHeight * outWidth];
   const refY = refIm2Col(
-    x.data,
+    x.toArray(),
     shape,
     outHeight,
     outWidth,

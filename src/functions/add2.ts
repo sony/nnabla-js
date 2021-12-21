@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 import FunctionImpl from './base';
 import Variable from '../variable';
 
@@ -17,7 +17,8 @@ export default class Add2 implements FunctionImpl {
       .createKernel(function (x: number[], y: number[]): number {
         return x[this.thread.x] + y[this.thread.x];
       })
-      .setOutput([outputs[0].size()]);
+      .setOutput([outputs[0].size()])
+      .setPipeline(true);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {
@@ -35,7 +36,7 @@ export default class Add2 implements FunctionImpl {
     }
     Add2.validate(inputs, outputs);
 
-    const output = this.kernel(inputs[0].data, inputs[1].data) as number[];
+    const output = this.kernel(inputs[0].data, inputs[1].data) as Texture;
     outputs[0].setData(output);
   }
 }

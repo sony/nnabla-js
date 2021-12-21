@@ -61,7 +61,8 @@ test('test-average-pooling', () => {
 
   pooling.setup([x], [y]);
   pooling.forward([x], [y]);
+  const yData = y.toArray();
 
-  const yRef = averagePoolingRef(x.data, x.shape, [2, 2], [4, 4], y.shape);
-  expectAllClose(y.data, yRef, 0.0001);
+  const yRef = averagePoolingRef(x.toArray(), x.shape, [2, 2], [4, 4], y.shape);
+  expectAllClose(yData, yRef, 0.0001);
 });

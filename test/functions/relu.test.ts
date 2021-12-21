@@ -11,11 +11,14 @@ test('test-relu', () => {
   relu.setup([x], [y]);
   relu.forward([x], [y]);
 
+  const xData = x.toArray();
+  const yData = y.toArray();
+
   for (let i = 0; i < 100; i += 1) {
-    if (x.data[i] > 0) {
-      expectClose(y.data[i], x.data[i], 0.0001);
+    if (xData[i] > 0) {
+      expectClose(yData[i], xData[i], 0.0001);
     } else {
-      expect(y.data[i]).toBe(0.0);
+      expect(yData[i]).toBe(0.0);
     }
   }
 });

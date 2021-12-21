@@ -325,7 +325,7 @@ export function createIm2Col2dKernel(
   kernelShape: number[],
   stride: number[],
   pad: number[],
-): [(x: number[]) => number[], number[]] {
+): [IKernelRunShortcut, number[]] {
   // (B, C, H, W) -> (B, C, K, L)
   // L is the output HxW
   // K is the kernel HxW
@@ -347,41 +347,47 @@ export function createIm2Col2dKernel(
   const outputSize = oB * C * K * L;
 
   const kernel = gpu
-    .createKernel(function (
-      x: number[],
-      _H: number,
-      _W: number,
-      _kH: number,
-      _kW: number,
-      _sH: number,
-      _sW: number,
-      _pH: number,
-      _pW: number,
-      _oH: number,
-      _oW: number,
-    ): number {
+    .createKernel(function (x: number[]): number {
       // (B, C, H, W) -> (B, C, K, L)
-      const bcIndex = Math.floor(this.thread.x / (_kH * _kW * _oH * _oW));
-      const hIdx = Math.floor(this.thread.x / _oW);
-      const hIndex = hIdx % _oH;
-      const wIndex = this.thread.x % _oW;
-      const cIm = Math.floor(hIdx / _oH);
-      const yK = Math.floor(cIm / _kW) % _kH;
-      const xK = cIm % _kW;
-      const yI = hIndex * _sH - _pH + yK;
-      const xI = wIndex * _sW - _pW + xK;
-      if (yI >= 0 && xI >= 0 && yI < _H && xI < _W) {
-        return x[bcIndex * _H * _W + yI * _W + xI];
+      const tH = this.constants.H as number;
+      const tW = this.constants.W as number;
+      const tKH = this.constants.kH as number;
+      const tKW = this.constants.kW as number;
+      const tSH = this.constants.sH as number;
+      const tSW = this.constants.sW as number;
+      const tPH = this.constants.pH as number;
+      const tPW = this.constants.pW as number;
+      const tOH = this.constants.oH as number;
+      const tOW = this.constants.oW as number;
+      const bcIndex = Math.floor(this.thread.x / (tKH * tKW * tOH * tOW));
+      const hIdx = Math.floor(this.thread.x / tOW);
+      const hIndex = hIdx % tOH;
+      const wIndex = this.thread.x % tOW;
+      const cIm = Math.floor(hIdx / tOH);
+      const yK = Math.floor(cIm / tKW) % tKH;
+      const xK = cIm % tKW;
+      const yI = hIndex * tSH - tPH + yK;
+      const xI = wIndex * tSW - tPW + xK;
+      if (yI >= 0 && xI >= 0 && yI < tH && xI < tW) {
+        return x[bcIndex * tH * tW + yI * tW + xI];
       }
       return 0.0;
     })
+    .setConstants({
+      H,
+      W,
+      kH,
+      kW,
+      sH,
+      sW,
+      pH,
+      pW,
+      oH,
+      oW,
+    })
     .setOutput([outputSize]);
 
-  function im2col(x: number[]): number[] {
-    return kernel(x, H, W, kH, kW, sH, sW, pH, pW, oH, oW) as number[];
-  }
-
-  return [im2col, outputShape];
+  return [kernel, outputShape];
 }
 
 export function createIm2ColKernel(
@@ -390,7 +396,7 @@ export function createIm2ColKernel(
   kernelShape: number[],
   stride: number[],
   pad: number[],
-): [(x: number[]) => number[], number[]] {
+): [IKernelRunShortcut, number[]] {
   if (shape.length === 4) {
     return createIm2Col2dKernel(gpu, shape, kernelShape, stride, pad);
   }

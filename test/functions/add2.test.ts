@@ -12,7 +12,11 @@ test('test-add2', () => {
   add2.setup([x, y], [z]);
   add2.forward([x, y], [z]);
 
+  const xData = x.toArray();
+  const yData = y.toArray();
+  const zData = z.toArray();
+
   for (let i = 0; i < 100; i += 1) {
-    expectClose(z.data[i], x.data[i] + y.data[i], 0.0001);
+    expectClose(zData[i], xData[i] + yData[i], 0.0001);
   }
 });

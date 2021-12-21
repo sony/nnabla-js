@@ -27,6 +27,10 @@ export default class Affine implements FunctionImpl {
     const wRowSize = inputs[1].shape[0];
     const wColSize = inputs[1].size() / wRowSize;
 
+    if (!Array.isArray(inputs[1].data)) {
+      throw Error('inputs[0].data must be Array.');
+    }
+
     [this.matmulKernel] = createMatmulKernel(
       this.gpu,
       [iRowSize, iColSize],
@@ -34,17 +38,19 @@ export default class Affine implements FunctionImpl {
       false,
       false,
       null,
-      inputs[1].data,
+      inputs[1].data as number[],
     );
+    this.matmulKernel.setPipeline(true);
 
     if (inputs.length === 3) {
       this.biasKernel = this.gpu
-        .createKernel(function (x: number[], oColSize: number): number {
-          const col = this.thread.x % oColSize;
+        .createKernel(function (x: number[]): number {
+          const col = this.thread.x % (this.constants.oColSize as number);
           return x[this.thread.x] + (this.constants.bias as number[])[col];
         })
-        .setConstants({ bias: inputs[2].data })
-        .setOutput([outputs[0].size()]);
+        .setConstants({ bias: inputs[2].data, oColSize: outputs[0].shape[1] })
+        .setOutput([outputs[0].size()])
+        .setPipeline(true);
     }
   }
 
@@ -66,7 +72,7 @@ export default class Affine implements FunctionImpl {
     let output = this.matmulKernel(inputs[0].data) as number[];
 
     if (this.biasKernel) {
-      output = this.biasKernel(output, outputs[0].shape[1]) as number[];
+      output = this.biasKernel(output) as number[];
     }
     outputs[0].setData(output);
   }

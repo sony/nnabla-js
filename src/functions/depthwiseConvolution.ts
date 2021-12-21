@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 import { DepthwiseConvolutionParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import { createIm2ColKernel } from './utils';
@@ -11,7 +11,7 @@ export default class DepthwiseConvolution implements FunctionImpl {
 
   gpu: GPU;
 
-  im2colKernel: ((x: number[]) => number[]) | undefined;
+  im2colKernel: IKernelRunShortcut | undefined;
 
   im2colShape: number[];
 
@@ -37,6 +37,7 @@ export default class DepthwiseConvolution implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    this.im2colKernel.setPipeline(true);
     const [, C, K, L] = this.im2colShape;
 
     // Spatial convolution
@@ -63,7 +64,8 @@ export default class DepthwiseConvolution implements FunctionImpl {
         K,
         L,
       })
-      .setOutput([outputs[0].size()]);
+      .setOutput([outputs[0].size()])
+      .setPipeline(true);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {
@@ -82,7 +84,7 @@ export default class DepthwiseConvolution implements FunctionImpl {
     DepthwiseConvolution.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    const output = this.convKernel(im2colOutput) as number[];
+    const output = this.convKernel(im2colOutput) as Texture;
 
     outputs[0].setData(output);
   }

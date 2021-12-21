@@ -60,7 +60,8 @@ test('test-depthwise-convolution', () => {
 
   conv.setup([x, w], [y]);
   conv.forward([x, w], [y]);
+  const yData = y.toArray();
 
-  const yRef = depthwiseConvolutionRef(x.data, w.data, x.shape, w.shape, [2, 2], y.shape);
-  expectAllClose(y.data, yRef, 0.0001);
+  const yRef = depthwiseConvolutionRef(x.toArray(), w.toArray(), x.shape, w.shape, [2, 2], y.shape);
+  expectAllClose(yData, yRef, 0.0001);
 });

@@ -75,7 +75,16 @@ test('test-convolution', () => {
 
   conv.setup([x, w, b], [y]);
   conv.forward([x, w, b], [y]);
+  const yData = y.toArray();
 
-  const yRef = convolutionRef(x.data, w.data, b.data, x.shape, w.shape, [2, 2], y.shape);
-  expectAllClose(y.data, yRef, 0.0001);
+  const yRef = convolutionRef(
+    x.toArray(),
+    w.toArray(),
+    b.toArray(),
+    x.shape,
+    w.shape,
+    [2, 2],
+    y.shape,
+  );
+  expectAllClose(yData, yRef, 0.0001);
 });

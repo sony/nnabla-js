@@ -12,7 +12,11 @@ test('test-sub2', () => {
   sub2.setup([x, y], [z]);
   sub2.forward([x, y], [z]);
 
+  const xData = x.toArray();
+  const yData = y.toArray();
+  const zData = z.toArray();
+
   for (let i = 0; i < 100; i += 1) {
-    expectClose(z.data[i], x.data[i] - y.data[i], 0.0001);
+    expectClose(zData[i], xData[i] - yData[i], 0.0001);
   }
 });

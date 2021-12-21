@@ -64,7 +64,7 @@ export default class Executor {
     // Get output data
     const output: { [key: string]: number[] } = {};
     for (const outputName of this.outputNames) {
-      output[outputName] = Array.from(this.network.getVariable(outputName).data);
+      output[outputName] = Array.from(this.network.getVariable(outputName).toArray());
     }
 
     return output;

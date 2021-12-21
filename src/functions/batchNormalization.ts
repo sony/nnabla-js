@@ -34,8 +34,8 @@ export default class BatchNormalization implements FunctionImpl {
     const inputLen = inputs.length;
     const mean = inputs[inputLen - 2].data;
     const vars = inputs[inputLen - 1].data;
-    const beta: number[] = noBias ? [] : inputs[1].data;
-    const gamma: number[] = noScale ? [] : inputs[noBias ? 1 : 2].data;
+    const beta: number[] = noBias ? [] : (inputs[1].data as number[]);
+    const gamma: number[] = noScale ? [] : (inputs[noBias ? 1 : 2].data as number[]);
 
     this.kernel = this.gpu
       .createKernel(function (x: number[]): number {
@@ -63,7 +63,8 @@ export default class BatchNormalization implements FunctionImpl {
         spatialSize,
         targetAxisSize,
       })
-      .setOutput([outputs[0].size()]);
+      .setOutput([outputs[0].size()])
+      .setPipeline(true);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {

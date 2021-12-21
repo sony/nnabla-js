@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 import { MaxPoolingParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import { createIm2ColKernel } from './utils';
@@ -10,7 +10,7 @@ export default class MaxPooling implements FunctionImpl {
 
   gpu: GPU;
 
-  im2colKernel: ((x: number[]) => number[]) | undefined;
+  im2colKernel: IKernelRunShortcut | undefined;
 
   im2colShape: number[];
 
@@ -37,6 +37,7 @@ export default class MaxPooling implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    this.im2colKernel.setPipeline(true);
     const [, , K, L] = this.im2colShape;
 
     this.poolingKernel = this.gpu
@@ -55,7 +56,8 @@ export default class MaxPooling implements FunctionImpl {
         return maxValue;
       })
       .setConstants({ K, L })
-      .setOutput([outputs[0].size()]);
+      .setOutput([outputs[0].size()])
+      .setPipeline(true);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {
@@ -74,7 +76,7 @@ export default class MaxPooling implements FunctionImpl {
     MaxPooling.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    const output = this.poolingKernel(im2colOutput) as number[];
+    const output = this.poolingKernel(im2colOutput) as Texture;
 
     outputs[0].setData(output);
   }

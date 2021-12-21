@@ -1,3 +1,4 @@
+import { Texture } from 'gpu.js';
 import { Parameter, Variable as ProtoVariable } from './proto/nnabla_pb';
 import { getAsArrayOrThrow } from './utils';
 
@@ -11,7 +12,7 @@ export default class Variable {
 
   shape: number[];
 
-  data: number[];
+  data: number[] | Texture;
 
   outputFrom: IFunction | undefined;
 
@@ -71,10 +72,21 @@ export default class Variable {
     return size;
   }
 
-  setData(data: number[]): void {
-    if (data.length !== this.size()) {
-      throw Error(`the data size does not match: execpted=${this.size()} actual=${data.length}`);
+  setData(data: number[] | Texture): void {
+    if (Array.isArray(data)) {
+      if (data.length !== this.size()) {
+        throw Error(`the data size does not match: execpted=${this.size()} actual=${data.length}`);
+      }
+      this.data = Array.from(data);
+    } else {
+      this.data = data;
     }
-    this.data = Array.from(data);
+  }
+
+  toArray(): number[] {
+    if (Object.prototype.hasOwnProperty.call(this.data, 'toArray')) {
+      return (this.data as Texture).toArray() as number[];
+    }
+    return this.data as number[];
   }
 }

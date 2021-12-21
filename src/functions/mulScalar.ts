@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 import { MulScalarParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import Variable from '../variable';
@@ -22,7 +22,8 @@ export default class MulScalar implements FunctionImpl {
         return x[this.thread.x] * (this.constants.val as number);
       })
       .setConstants({ val: this.param.getVal() })
-      .setOutput([outputs[0].size()]);
+      .setOutput([outputs[0].size()])
+      .setPipeline(true);
   }
 
   static validate(inputs: Variable[], outputs: Variable[]): void {
@@ -40,7 +41,7 @@ export default class MulScalar implements FunctionImpl {
     }
     MulScalar.validate(inputs, outputs);
 
-    const output = this.kernel(inputs[0].data) as number[];
+    const output = this.kernel(inputs[0].data) as Texture;
     outputs[0].setData(output);
   }
 }

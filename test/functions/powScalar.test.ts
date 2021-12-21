@@ -11,14 +11,17 @@ test('test-powScalar', () => {
   param.setVal(2.0);
   const powScalar = new PowScalar(param, new GPU());
 
+  const xData = x.toArray();
   for (let i = 0; i < x.size(); i += 1) {
-    x.data[i] += 2.0;
+    xData[i] += 2.0;
   }
 
   powScalar.setup([x], [y]);
   powScalar.forward([x], [y]);
 
+  const yData = y.toArray();
+
   for (let i = 0; i < 100; i += 1) {
-    expectClose(y.data[i], x.data[i] ** 2.0, 0.0001);
+    expectClose(yData[i], xData[i] ** 2.0, 0.0001);
   }
 });

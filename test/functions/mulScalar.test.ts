@@ -14,7 +14,10 @@ test('test-mulScalar', () => {
   mulScalar.setup([x], [y]);
   mulScalar.forward([x], [y]);
 
+  const xData = x.toArray();
+  const yData = y.toArray();
+
   for (let i = 0; i < 100; i += 1) {
-    expectClose(y.data[i], 2.0 * x.data[i], 0.0001);
+    expectClose(yData[i], 2.0 * xData[i], 0.0001);
   }
 });

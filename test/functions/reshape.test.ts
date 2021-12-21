@@ -17,7 +17,10 @@ test('test-reshape', () => {
   reshape.setup([x], [y]);
   reshape.forward([x], [y]);
 
+  const xData = x.toArray();
+  const yData = y.toArray();
+
   for (let i = 0; i < 100; i += 1) {
-    expectClose(y.data[i], x.data[i], 0.0001);
+    expectClose(yData[i], xData[i], 0.0001);
   }
 });

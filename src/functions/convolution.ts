@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 import { ConvolutionParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import { createBatchMatmulKernel, createIm2ColKernel } from './utils';
@@ -11,7 +11,7 @@ export default class Convolution implements FunctionImpl {
 
   gpu: GPU;
 
-  im2colKernel: ((x: number[]) => number[]) | undefined;
+  im2colKernel: IKernelRunShortcut | undefined;
 
   im2colShape: number[];
 
@@ -41,6 +41,7 @@ export default class Convolution implements FunctionImpl {
       getAsArrayOrThrow<number>(this.param.getStride()?.getDimList()),
       getAsArrayOrThrow<number>(this.param.getPad()?.getDimList()),
     );
+    this.im2colKernel.setPipeline(true);
     const [B, C, K, L] = this.im2colShape;
 
     const wC = inputs[1].shape[0];
@@ -49,14 +50,19 @@ export default class Convolution implements FunctionImpl {
       kernelSize *= inputs[1].shape[i];
     }
 
+    if (!Array.isArray(inputs[1].data)) {
+      throw Error('inputs[1].data must be Array.');
+    }
+
     // Apply batch matmul
     [this.matmulKernel] = createBatchMatmulKernel(
       this.gpu,
       [1, wC, kernelSize / wC],
       [B, C * K, L],
-      inputs[1].data,
+      inputs[1].data as number[],
       null,
     );
+    this.matmulKernel.setPipeline(true);
 
     // Apply bias
     if (inputs.length === 3) {
@@ -67,7 +73,8 @@ export default class Convolution implements FunctionImpl {
           return x[this.thread.x] + (this.constants.bias as number[])[col];
         })
         .setConstants({ bias: inputs[2].data, C: inputs[1].shape[0], L })
-        .setOutput([outputs[0].size()]);
+        .setOutput([outputs[0].size()])
+        .setPipeline(true);
     }
   }
 
@@ -87,10 +94,10 @@ export default class Convolution implements FunctionImpl {
     Convolution.validate(inputs, outputs);
 
     const im2colOutput = this.im2colKernel(inputs[0].data);
-    let output = this.matmulKernel(im2colOutput) as number[];
+    let output = this.matmulKernel(im2colOutput) as Texture;
 
     if (this.biasKernel) {
-      output = this.biasKernel(output) as number[];
+      output = this.biasKernel(output) as Texture;
     }
 
     outputs[0].setData(output);

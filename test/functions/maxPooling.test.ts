@@ -63,7 +63,8 @@ test('test-max-pooling', () => {
 
   pooling.setup([x], [y]);
   pooling.forward([x], [y]);
+  const yData = y.toArray();
 
-  const yRef = maxPoolingRef(x.data, x.shape, [2, 2], [4, 4], y.shape);
-  expectAllClose(y.data, yRef, 0.0001);
+  const yRef = maxPoolingRef(x.toArray(), x.shape, [2, 2], [4, 4], y.shape);
+  expectAllClose(yData, yRef, 0.0001);
 });

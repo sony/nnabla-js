@@ -41,21 +41,23 @@ test('test-batch-normalization', () => {
   param.setEps(0.0001);
   const bn = new BatchNormalization(param, new GPU());
 
+  const varsData = vars.toArray();
   for (let i = 0; i < vars.size(); i += 1) {
-    vars.data[i] += 1.0;
+    varsData[i] += 1.0;
   }
 
   bn.setup([x, beta, gamma, mean, vars], [y]);
   bn.forward([x, beta, gamma, mean, vars], [y]);
+  const yData = y.toArray();
 
   const yRef = batchNormalizationRef(
-    x.data,
+    x.toArray(),
     x.shape,
-    mean.data,
-    vars.data,
-    beta.data,
-    gamma.data,
+    mean.toArray(),
+    vars.toArray(),
+    beta.toArray(),
+    gamma.toArray(),
     0.0001,
   );
-  expectAllClose(y.data, yRef, 0.00001);
+  expectAllClose(yData, yRef, 0.00001);
 });
