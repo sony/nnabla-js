@@ -108,7 +108,7 @@ def cnn(x):
     h = F.relu(h)
     h = PF.convolution(h, 16, kernel=(2, 2), stride=(1, 1), name="conv2")
     h = F.relu(h)
-    return PF.affine(h, 10, name="affine1")
+    return PF.affine(F.reshape(h, [x.shape[0], -1]), 10, name="affine1")
 
 
 def cross_entropy(y, t):

@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 import { AffineParameter } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import { createMatmulKernel } from './utils';
@@ -26,10 +26,6 @@ export default class Affine implements FunctionImpl {
     const iRowSize = inputs[0].size() / iColSize;
     const wRowSize = inputs[1].shape[0];
     const wColSize = inputs[1].size() / wRowSize;
-
-    if (!Array.isArray(inputs[1].data)) {
-      throw Error('inputs[0].data must be Array.');
-    }
 
     [this.matmulKernel] = createMatmulKernel(
       this.gpu,
@@ -71,13 +67,13 @@ export default class Affine implements FunctionImpl {
       inputs[1].cache(this.gpu);
     }
 
-    let output = this.matmulKernel(inputs[0].data, inputs[1].data) as number[];
+    let output = this.matmulKernel(inputs[0].data, inputs[1].data) as Texture;
 
     if (this.biasKernel) {
       if (!inputs[2].isTexture()) {
         inputs[2].cache(this.gpu);
       }
-      output = this.biasKernel(output, inputs[2].data) as number[];
+      output = this.biasKernel(output, inputs[2].data) as Texture;
     }
     outputs[0].setData(output);
   }
