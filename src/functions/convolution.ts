@@ -70,7 +70,7 @@ export default class Convolution implements FunctionImpl {
           const col = Math.floor((this.thread.x % dataSize) / (this.constants.L as number));
           return x[this.thread.x] + b[col];
         })
-        .setConstants({ C: inputs[1].shape[0], L })
+        .setConstants({ C: wC, L })
         .setOutput([outputs[0].size()])
         .setPipeline(true);
     }

@@ -3,7 +3,7 @@ import { GPU } from 'gpu.js';
 import { unzipNNP } from '../src/nnp';
 import Network from '../src/network';
 import VariableManager from '../src/variableManager';
-import Executor from '../src/executor';
+import { Executor } from '../src/executor';
 
 test('test-executor-from-proto', (done) => {
   fs.readFile('test.nnp', (_, data) => {

@@ -46,7 +46,7 @@ export default class Affine implements FunctionImpl {
           const col = this.thread.x % (this.constants.oColSize as number);
           return x[this.thread.x] + b[col];
         })
-        .setConstants({ oColSize: outputs[0].shape[1] })
+        .setConstants({ oColSize: wColSize })
         .setOutput([outputs[0].size()])
         .setPipeline(true);
     }

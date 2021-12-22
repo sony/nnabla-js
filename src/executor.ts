@@ -3,7 +3,11 @@ import Function from './function';
 import Network from './network';
 import Variable from './variable';
 
-function forwardRecursively(leaf: Variable, visited: Function[]): void {
+export interface ForwardConfig {
+  verbose?: boolean;
+}
+
+function forwardRecursively(leaf: Variable, visited: Function[], verbose: boolean): void {
   if (leaf.outputFrom === undefined) {
     return;
   }
@@ -15,14 +19,20 @@ function forwardRecursively(leaf: Variable, visited: Function[]): void {
   }
 
   for (const variable of func.inputs) {
-    forwardRecursively(variable, visited);
+    forwardRecursively(variable, visited, verbose);
   }
 
   leaf.outputFrom.forward();
+
+  if (verbose) {
+    console.log(`Visited ${leaf.name}`);
+    console.log(leaf.toArray());
+  }
+
   visited.push(func);
 }
 
-export default class Executor {
+export class Executor {
   name: string;
 
   network: Network;
@@ -47,7 +57,15 @@ export default class Executor {
     return new Executor(name, network, inputNames, outputNames);
   }
 
-  forward(inputs: { [key: string]: number[] }): { [key: string]: number[] } {
+  forward(
+    inputs: { [key: string]: number[] },
+    config?: ForwardConfig,
+  ): { [key: string]: number[] } {
+    let verbose = false;
+    if (config !== undefined && config.verbose) {
+      verbose = true;
+    }
+
     // Set input data
     for (const inputKey of Object.keys(inputs)) {
       const variable = this.network.getVariable(inputKey);
@@ -58,7 +76,7 @@ export default class Executor {
     const outputVariables = this.outputNames.map((name) => this.network.getVariable(name));
     const visited: Function[] = [];
     for (const variable of outputVariables) {
-      forwardRecursively(variable, visited);
+      forwardRecursively(variable, visited, verbose);
     }
 
     // Get output data

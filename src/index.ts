@@ -1,4 +1,4 @@
-import Executor from './executor';
+import { Executor } from './executor';
 import Network from './network';
 import { NNP } from './nnp';
 import Variable from './variable';

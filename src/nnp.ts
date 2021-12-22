@@ -9,7 +9,7 @@ import {
 import decodePbtxt from './pbtxtDecoder';
 import VariableManager from './variableManager';
 import { getOrThrow } from './utils';
-import Executor from './executor';
+import { Executor, ForwardConfig } from './executor';
 import Network from './network';
 
 interface ProtoNNP {
@@ -99,8 +99,12 @@ export class NNP {
     });
   }
 
-  forward(executorName: string, data: { [key: string]: number[] }): { [key: string]: number[] } {
-    return this.executors[executorName].forward(data);
+  forward(
+    executorName: string,
+    data: { [key: string]: number[] },
+    config?: ForwardConfig,
+  ): { [key: string]: number[] } {
+    return this.executors[executorName].forward(data, config);
   }
 
   forwardAsync(
