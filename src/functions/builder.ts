@@ -10,6 +10,7 @@ import {
   MaxPoolingParameter,
   MulScalarParameter,
   PowScalarParameter,
+  RandnParameter,
   ReshapeParameter,
 } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
@@ -27,6 +28,7 @@ import Mul2 from './mul2';
 import MulScalar from './mulScalar';
 import Pow2 from './pow2';
 import PowScalar from './powScalar';
+import Randn from './randn';
 import ReLU from './relu';
 import Reshape from './reshape';
 import Sub2 from './sub2';
@@ -69,6 +71,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Pow2(gpu);
     case 'PowScalar':
       return new PowScalar(getOrThrow<PowScalarParameter>(func.getPowScalarParam()), gpu);
+    case 'Randn':
+      return new Randn(getOrThrow<RandnParameter>(func.getRandnParam()), gpu);
     case 'ReLU':
       return new ReLU(gpu);
     case 'Reshape':
