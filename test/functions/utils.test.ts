@@ -4,6 +4,7 @@ import {
   createBatchMatmulKernel,
   createMatmulKernel,
   createIm2ColKernel,
+  createCol2ImKernel,
 } from '../../src/functions/utils';
 import { expectAllClose } from '../testUtils';
 
@@ -173,6 +174,73 @@ test('test-im2col', () => {
     [kernelShape[2], kernelShape[3]],
     stride,
   );
+  expect(outputShape).toEqual(refOutputShape);
+  expectAllClose(y, refY, 0.0001);
+});
+
+function refCol2Im(
+  x: number[],
+  shape: number[],
+  inImShape: number[],
+  outImShape: number[],
+  kernelShape: number[],
+  stride: number[],
+): number[] {
+  const [B, C, K, L] = shape;
+  const [, iW] = inImShape;
+  const [oH, oW] = outImShape;
+  const [, kW] = kernelShape;
+  const [sH, sW] = stride;
+
+  const output = [...Array(B * C * oH * oW)].map(() => 0.0);
+
+  for (let i = 0; i < B; i += 1) {
+    const bOffset = i * C * K * L;
+    for (let j = 0; j < C; j += 1) {
+      const cOffset = j * K * L;
+      for (let k = 0; k < K; k += 1) {
+        const kOffset = k * L;
+        const kHIndex = Math.floor(k / kW);
+        const kWIndex = k % kW;
+        for (let l = 0; l < L; l += 1) {
+          const xIndex = bOffset + cOffset + kOffset + l;
+
+          // compute orignal location
+          const outHIndex = Math.floor(l / iW) * sH + kHIndex;
+          const outWIndex = (l % iW) * sW + kWIndex;
+
+          const yIndex = i * C * oH * oW + j * oH * oW + outHIndex * oW + outWIndex;
+          output[yIndex] += x[xIndex];
+        }
+      }
+    }
+  }
+
+  return output;
+}
+
+test('test-col2im', () => {
+  const shape = [32, 3, 4, 14 * 14];
+  const inImShape = [14, 14];
+  const outImShape = [28, 28];
+  const x = Variable.rand('x', shape);
+  const kernelShape = [2, 2];
+  const stride = [2, 2];
+  const gpu = new GPU();
+
+  const [col2im, outputShape] = createCol2ImKernel(
+    gpu,
+    shape,
+    inImShape,
+    outImShape,
+    [2, 2],
+    stride,
+    [0, 0],
+  );
+  const y = col2im(x.toArray()) as number[];
+
+  const refOutputShape = [32, 3, 28, 28];
+  const refY = refCol2Im(x.toArray(), shape, inImShape, outImShape, kernelShape, stride);
   expect(outputShape).toEqual(refOutputShape);
   expectAllClose(y, refY, 0.0001);
 });

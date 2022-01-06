@@ -221,3 +221,107 @@ export function createIm2ColKernel(
   }
   throw Error('im2col only supports (B, C, H, W) shape.');
 }
+
+export function createCol2Im2dKernel(
+  gpu: GPU,
+  shape: number[],
+  inImShape: number[],
+  outImShape: number[],
+  kernelShape: number[],
+  stride: number[],
+  pad: number[],
+): [IKernelRunShortcut, number[]] {
+  // (B, C, K, L) -> (B, C, H, W)
+  // L is the input HxW
+  // K is the kernel HxW
+
+  const [B, C, K, L] = shape;
+  const [iH, iW] = inImShape; // iH x iW = L
+  const [oH, oW] = outImShape;
+  const [kH, kW] = kernelShape;
+  const [sH, sW] = stride;
+  const [pH, pW] = pad;
+
+  // Calculate col2im shape
+  const outputShape = [B, C, oH, oW];
+  const outputSize = B * C * oH * oW;
+
+  const kernel = gpu
+    .createKernel(function (x: number[]): number {
+      // (B, C, K, L) -> (B, C, H, W)
+      const tIW = this.constants.iW as number;
+      const tOH = this.constants.oH as number;
+      const tOW = this.constants.oW as number;
+      const tKW = this.constants.kW as number;
+      const tSH = this.constants.sH as number;
+      const tSW = this.constants.sW as number;
+      const tPH = this.constants.pH as number;
+      const tPW = this.constants.pW as number;
+      const tK = this.constants.K as number;
+      const tL = this.constants.L as number;
+
+      const bcIndex = Math.floor(this.thread.x / (tOH * tOW));
+      const hIndex = Math.floor((this.thread.x % (tOH * tOW)) / tOW);
+      const wIndex = this.thread.x % tOW;
+
+      let value = 0.0;
+      for (let kIndex = 0; kIndex < tK; kIndex += 1) {
+        // location in kernel
+        const kHIndex = Math.floor(kIndex / tKW);
+        const kWIndex = kIndex % tKW;
+        for (let lIndex = 0; lIndex < tL; lIndex += 1) {
+          // location in input image
+          const inHIndex = Math.floor(lIndex / tIW);
+          const inWIndex = lIndex % tIW;
+
+          // location in original image
+          const hOffset = inHIndex * tSH;
+          const wOffset = inWIndex * tSW;
+          const targetH = hOffset + kHIndex;
+          const targetW = wOffset + kWIndex;
+
+          // skip if the original location is padding
+          if (!(targetH < tPH || targetH >= tOH + tPH || targetW < tPW || targetW >= tOW + tPW)) {
+            // check if location matches
+            if (hIndex === targetH && wIndex === targetW) {
+              const index = bcIndex * tK * tL + kIndex * tL + lIndex;
+              value += x[index];
+            }
+          }
+        }
+      }
+      return value;
+    })
+    .setConstants({
+      iH,
+      iW,
+      oH,
+      oW,
+      kH,
+      kW,
+      sH,
+      sW,
+      pH,
+      pW,
+      K,
+      L,
+    })
+    .setOutput([outputSize]);
+
+  return [kernel, outputShape];
+}
+
+export function createCol2ImKernel(
+  gpu: GPU,
+  shape: number[],
+  inImShape: number[],
+  outImShape: number[],
+  kernelShape: number[],
+  stride: number[],
+  pad: number[],
+): [IKernelRunShortcut, number[]] {
+  if (shape.length === 4) {
+    return createCol2Im2dKernel(gpu, shape, inImShape, outImShape, kernelShape, stride, pad);
+  }
+  throw Error('im2col only supports (B, C, H, W) shape.');
+}
