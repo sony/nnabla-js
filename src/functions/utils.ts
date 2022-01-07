@@ -78,6 +78,8 @@ export function createBatchMatmulKernel(
   gpu: GPU,
   xShape: number[],
   yShape: number[],
+  transposeX: boolean,
+  transposeY: boolean,
 ): [IKernelRunShortcut, number[]] {
   if (xShape.length !== 3) {
     throw Error(`invalid x shape: ${xShape}`);
@@ -91,8 +93,16 @@ export function createBatchMatmulKernel(
 
   const outputShape = [];
   outputShape.push(Math.max(xShape[0], yShape[0]));
-  outputShape.push(xShape[1]);
-  outputShape.push(yShape[2]);
+  if (transposeX) {
+    outputShape.push(xShape[2]);
+  } else {
+    outputShape.push(xShape[1]);
+  }
+  if (transposeY) {
+    outputShape.push(yShape[1]);
+  } else {
+    outputShape.push(yShape[2]);
+  }
 
   const [xBatchSize, xRowSize, xColSize] = xShape;
   const [yBatchSize, yRowSize, yColSize] = yShape;
@@ -105,21 +115,34 @@ export function createBatchMatmulKernel(
       const tYBatchSize = this.constants.yBatchSize as number;
       const tYRowSize = this.constants.yRowSize as number;
       const tYColSize = this.constants.yColSize as number;
-      const batchIndex = Math.floor(this.thread.x / (tXRowSize * tYColSize));
+      const tMatrixSize = this.constants.matrixSize as number;
+      const batchIndex = Math.floor(this.thread.x / tMatrixSize);
       const xBatch = tXBatchSize === 1 ? 0 : batchIndex;
       const yBatch = tYBatchSize === 1 ? 0 : batchIndex;
       const xOffset = xBatch * tXRowSize * tXColSize;
       const yOffset = yBatch * tYRowSize * tYColSize;
-      const xBase = Math.floor((this.thread.x % (tXRowSize * tYColSize)) / tYColSize);
-      const yBase = this.thread.x % tYColSize;
-      const dim = tXColSize;
+      const xBase = Math.floor(
+        (this.thread.x % tMatrixSize) /
+          ((this.constants.transposeY as boolean) ? tYRowSize : tYColSize),
+      );
+      const yBase =
+        this.thread.x % ((this.constants.transposeY as boolean) ? tYRowSize : tYColSize);
+      const dim = (this.constants.transposeX as boolean) ? tXRowSize : tXColSize;
       let output = 0.0;
       for (let i = 0; i < dim; i += 1) {
         let xValue: number = 0.0;
-        xValue = x[xOffset + xBase * tXColSize + i];
+        if (this.constants.transposeX) {
+          xValue = x[xOffset + i * tXColSize + xBase];
+        } else {
+          xValue = x[xOffset + xBase * tXColSize + i];
+        }
 
         let yValue: number = 0.0;
-        yValue = y[yOffset + i * tYColSize + yBase];
+        if (this.constants.transposeY) {
+          yValue = y[yOffset + yBase * tYColSize + i];
+        } else {
+          yValue = y[yOffset + i * tYColSize + yBase];
+        }
 
         output += xValue * yValue;
       }
@@ -132,6 +155,9 @@ export function createBatchMatmulKernel(
       yBatchSize,
       yRowSize,
       yColSize,
+      transposeX,
+      transposeY,
+      matrixSize: outputShape[1] * outputShape[2],
     })
     .setOutput([outputShape[0] * outputShape[1] * outputShape[2]]);
 

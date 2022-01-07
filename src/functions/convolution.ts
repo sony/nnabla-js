@@ -59,6 +59,8 @@ export default class Convolution implements FunctionImpl {
       this.gpu,
       [1, wC, kernelSize / wC],
       [B, C * K, L],
+      false,
+      false,
     );
     this.matmulKernel.setPipeline(true);
 

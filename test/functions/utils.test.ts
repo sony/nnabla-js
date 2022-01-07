@@ -18,6 +18,19 @@ function transpose(x: number[], shape: number[]): number[] {
   return y;
 }
 
+function batchTranspose(x: number[], shape: number[]): number[] {
+  const y: number[] = [];
+  for (let i = 0; i < shape[0]; i += 1) {
+    const offset = i * shape[1] * shape[2];
+    for (let j = 0; j < shape[2]; j += 1) {
+      for (let k = 0; k < shape[1]; k += 1) {
+        y.push(x[offset + k * shape[2] + j]);
+      }
+    }
+  }
+  return y;
+}
+
 function refMatmul(x: number[], y: number[], xShape: number[], yShape: number[]): number[] {
   const [xRowSize, xColSize] = xShape;
   const [, yColSize] = yShape;
@@ -88,24 +101,41 @@ function refBatchMatmul(x: number[], y: number[], xShape: number[], yShape: numb
 }
 
 test.each([
-  [1, 32],
-  [32, 1],
-  [32, 32],
-])('test-batch-matmul', (xBatchSize: number, yBatchSize: number) => {
-  const xShape = [xBatchSize, 16, 256];
-  const x = Variable.rand('x', xShape);
-  const yShape = [yBatchSize, 256, 64];
-  const y = Variable.rand('y', yShape);
-  const gpu = new GPU();
+  [1, 32, false, false],
+  [32, 1, false, false],
+  [32, 32, false, false],
+  [1, 32, true, true],
+  [1, 32, false, true],
+  [1, 32, true, false],
+])(
+  'test-batch-matmul',
+  (xBatchSize: number, yBatchSize: number, transposeX: boolean, transposeY: boolean) => {
+    let xShape = transposeX ? [xBatchSize, 256, 16] : [xBatchSize, 16, 256];
+    const x = Variable.rand('x', xShape);
+    let yShape = transposeY ? [yBatchSize, 64, 256] : [yBatchSize, 256, 64];
+    const y = Variable.rand('y', yShape);
+    const gpu = new GPU();
 
-  const [matmulKernel, outputShape] = createBatchMatmulKernel(gpu, xShape, yShape);
-  const z = matmulKernel(x.toArray(), y.toArray()) as number[];
+    const [matmulKernel, outputShape] = createBatchMatmulKernel(
+      gpu,
+      xShape,
+      yShape,
+      transposeX,
+      transposeY,
+    );
+    const z = matmulKernel(x.toArray(), y.toArray()) as number[];
 
-  const refOutputShape = [Math.max(xBatchSize, yBatchSize), 16, 64];
-  const refZ = refBatchMatmul(x.toArray(), y.toArray(), xShape, yShape);
-  expect(outputShape).toEqual(refOutputShape);
-  expectAllClose(z, refZ, 0.0001);
-});
+    const xData = transposeX ? batchTranspose(x.toArray(), xShape) : x.toArray();
+    xShape = transposeX ? [xShape[0], xShape[2], xShape[1]] : xShape;
+    const yData = transposeY ? batchTranspose(y.toArray(), yShape) : y.toArray();
+    yShape = transposeY ? [yShape[0], yShape[2], yShape[1]] : yShape;
+
+    const refOutputShape = [Math.max(xBatchSize, yBatchSize), 16, 64];
+    const refZ = refBatchMatmul(xData, yData, xShape, yShape);
+    expect(outputShape).toEqual(refOutputShape);
+    expectAllClose(z, refZ, 0.0001);
+  },
+);
 
 function refIm2Col(
   x: number[],
