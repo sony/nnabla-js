@@ -36,6 +36,7 @@ import Randn from './randn';
 import ReLU from './relu';
 import Reshape from './reshape';
 import Sub2 from './sub2';
+import Tanh from './tanh';
 
 export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImpl {
   const functionType = func.getType();
@@ -90,6 +91,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Reshape(getOrThrow<ReshapeParameter>(func.getReshapeParam()), gpu);
     case 'Sub2':
       return new Sub2(gpu);
+    case 'Tanh':
+      return new Tanh(gpu);
     default:
       throw Error(`${functionType} is not supported yet.`);
   }
