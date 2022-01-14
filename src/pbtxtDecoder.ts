@@ -32,6 +32,9 @@ function convertSpecialField(name: string): string {
   if (name.includes('Relu')) {
     return name.replace('Relu', 'ReLU');
   }
+  if (name.includes('Elu')) {
+    return name.replace('Elu', 'ELU');
+  }
   if (
     name === 'Pad' ||
     name === 'Stride' ||
@@ -109,7 +112,7 @@ class Tokenizer {
         default:
           // number of field name
           value = this.readDataOrFieldName();
-          if (/^-?(\d|\.)+$/.test(value)) {
+          if (/^-?(\d|\.|e|(e-))+$/.test(value)) {
             return ['number', value];
           }
           if (value === 'true' || value === 'false') {
@@ -165,7 +168,7 @@ function parse(tokenizer: Tokenizer, obj: any): void {
         if (valueType === 'string') {
           fieldValue = rawValue;
         } else if (valueType === 'number') {
-          fieldValue = Number(rawValue);
+          fieldValue = Number.parseFloat(rawValue);
         } else if (valueType === 'boolean') {
           fieldValue = Boolean(rawValue);
         } else {
