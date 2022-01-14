@@ -8,6 +8,7 @@ import {
   ConvolutionParameter,
   DeconvolutionParameter,
   DepthwiseConvolutionParameter,
+  ELUParameter,
   MaxPoolingParameter,
   MulScalarParameter,
   PowScalarParameter,
@@ -25,6 +26,7 @@ import Convolution from './convolution';
 import Deconvolution from './deconvolution';
 import DepthwiseConvolution from './depthwiseConvolution';
 import Div2 from './div2';
+import ELU from './elu';
 import MaxPooling from './maxPooling';
 import Mul2 from './mul2';
 import MulScalar from './mulScalar';
@@ -68,6 +70,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       );
     case 'Div2':
       return new Div2(gpu);
+    case 'ELU':
+      return new ELU(getOrThrow<ELUParameter>(func.getEluParam()), gpu);
     case 'MaxPooling':
       return new MaxPooling(getOrThrow<MaxPoolingParameter>(func.getMaxPoolingParam()), gpu);
     case 'Mul2':
