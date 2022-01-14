@@ -32,7 +32,13 @@ function convertSpecialField(name: string): string {
   if (name.includes('Relu')) {
     return name.replace('Relu', 'ReLU');
   }
-  if (name === 'Pad' || name === 'Stride' || name === 'Dilation' || name === 'Kernel') {
+  if (
+    name === 'Pad' ||
+    name === 'Stride' ||
+    name === 'Dilation' ||
+    name === 'Kernel' ||
+    name === 'OutputPadding'
+  ) {
     return 'Shape';
   }
   return name;
