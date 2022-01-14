@@ -3,8 +3,6 @@
 
 A JavaScript runtime for Neural Network Libraries.
 
-:warning: Currently, only few layers are supported.
-
 ## key features
 - Run on web browser
 - Load and execute NNP
