@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MNIST DCGAN Example</title>
+</head>
+<body>
+  <h2>Create NNP</h2>
+  <pre>
+    $ git clone https://github.com/sony/nnabla-examples
+    $ cd nnabla-examples/mnist-collection
+    $ python dcgan.py -c cudnn -d 0
+    $ ls tmp.monitor.dcgan/Generator_result.nnp
+  </pre>
+  <h2>Choose NNP</h2>
+  <p><input type="file" id="nnpFile" /></p>
+  <h2>Generation Result</h2>
+  <p><button id="runButton">GENERATE</button></p>
+  <div>
+    <canvas id="preview" width=28 height=28></canvas>
+  </div>
+  <h2>Execution Time</h2>
+  <p id="time">Exection time: </p>
+</body>
+<script src="../dist/index.js"></script>
+<script>
+  let nnp = undefined;
+
+  document.getElementById("nnpFile").addEventListener("change", function (evt) {
+    const file = evt.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function () {
+      nnabla.NNP.fromNNPData(this.result).then(function(n) {
+        nnp = n;
+      });
+    };
+    reader.readAsBinaryString(file);
+  }, false);
+
+  document.getElementById("runButton").addEventListener("click", function (evt) {
+    const executor = nnp.executors["Runtime"];
+    const inputs = {};
+    for (let inputName of executor.inputNames) {
+      const variable = executor.network.getVariable(inputName);
+      inputs[inputName] = [...Array(variable.size())].map(() => Math.random() * 2.0 - 1.0);
+    }
+
+    const startTime = performance.now();
+    const output = nnp.forward("Runtime", inputs);
+    const endTime = performance.now();
+    const totalTime = endTime - startTime;
+    document.getElementById("time").innerHTML = "Exection time: " + totalTime + "ms";
+
+    console.log(output.y)
+    const imageData = createImageData(convertGray2RGBA(output.y));
+
+    document.getElementById("preview").getContext("2d").putImageData(imageData, 0, 0);
+  }, false);
+
+  function createImageData(rgbaData) {
+    const imageData = new ImageData(28, 28);
+    for (let i = 0; i < 28 * 28 * 4; ++i) {
+      imageData.data[i] = rgbaData[i];
+    }
+    return imageData;
+  }
+
+  function convertGray2RGBA(data) {
+    const ret = [];
+    for (let i = 0; i < 28 * 28; ++i) {
+      for (let j = 0; j < 3; ++j) {
+        ret.push(Math.floor(data[i] * 255));
+      }
+      ret.push(255);
+    }
+    return ret;
+  }
+</script>
