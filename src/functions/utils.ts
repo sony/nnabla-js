@@ -303,11 +303,11 @@ export function createCol2Im2dKernel(
           // location in original image
           const hOffset = inHIndex * tSH;
           const wOffset = inWIndex * tSW;
-          const targetH = hOffset + kHIndex;
-          const targetW = wOffset + kWIndex;
+          const targetH = hOffset + kHIndex - tPH;
+          const targetW = wOffset + kWIndex - tPW;
 
           // skip if the original location is padding
-          if (!(targetH < tPH || targetH >= tOH + tPH || targetW < tPW || targetW >= tOW + tPW)) {
+          if (!(targetH < 0 || targetH >= tOH || targetW < 0 || targetW >= tOW)) {
             // check if location matches
             if (hIndex === targetH && wIndex === targetW) {
               const index = bcIndex * tK * tL + kIndex * tL + lIndex;
