@@ -14,6 +14,7 @@ import {
   PowScalarParameter,
   RandnParameter,
   ReshapeParameter,
+  SoftmaxParameter,
 } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import { getOrThrow } from '../utils';
@@ -36,6 +37,7 @@ import Randn from './randn';
 import ReLU from './relu';
 import Reshape from './reshape';
 import Sigmoid from './sigmoid';
+import Softmax from './softmax';
 import Sub2 from './sub2';
 import Tanh from './tanh';
 
@@ -92,6 +94,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Reshape(getOrThrow<ReshapeParameter>(func.getReshapeParam()), gpu);
     case 'Sigmoid':
       return new Sigmoid(gpu);
+    case 'Softmax':
+      return new Softmax(getOrThrow<SoftmaxParameter>(func.getSoftmaxParam()), gpu);
     case 'Sub2':
       return new Sub2(gpu);
     case 'Tanh':
