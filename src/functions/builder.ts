@@ -35,6 +35,7 @@ import PowScalar from './powScalar';
 import Randn from './randn';
 import ReLU from './relu';
 import Reshape from './reshape';
+import Sigmoid from './sigmoid';
 import Sub2 from './sub2';
 import Tanh from './tanh';
 
@@ -89,6 +90,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new ReLU(gpu);
     case 'Reshape':
       return new Reshape(getOrThrow<ReshapeParameter>(func.getReshapeParam()), gpu);
+    case 'Sigmoid':
+      return new Sigmoid(gpu);
     case 'Sub2':
       return new Sub2(gpu);
     case 'Tanh':
