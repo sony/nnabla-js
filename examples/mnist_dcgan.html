@@ -51,7 +51,6 @@
     const totalTime = endTime - startTime;
     document.getElementById("time").innerHTML = "Exection time: " + totalTime + "ms";
 
-    console.log(output.y)
     const imageData = createImageData(convertGray2RGBA(output.y));
 
     document.getElementById("preview").getContext("2d").putImageData(imageData, 0, 0);
