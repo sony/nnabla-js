@@ -4,7 +4,19 @@ import Transpose from '../../src/functions/transpose';
 import Variable from '../../src/variable';
 import { expectAllClose } from '../testUtils';
 
-function refTranspose(x: number[], shape: number[]): number[] {
+function refTranspose2d(x: number[], shape: number[]): number[] {
+  const [B, H] = shape;
+  const y = [];
+  for (let i = 0; i < H; i += 1) {
+    for (let j = 0; j < B; j += 1) {
+      const index = j * H + i;
+      y.push(x[index]);
+    }
+  }
+  return y;
+}
+
+function refTranspose3d(x: number[], shape: number[]): number[] {
   const [B, H, W] = shape;
   const y = [];
   for (let i = 0; i < H; i += 1) {
@@ -18,7 +30,24 @@ function refTranspose(x: number[], shape: number[]): number[] {
   return y;
 }
 
-test('test-transpose', () => {
+test('test-transpose2d', () => {
+  const x = Variable.rand('x', [100, 5]);
+  const y = Variable.rand('y', [5, 100]);
+  const param = new TransposeParameter();
+  param.setAxesList([1, 0]);
+  const transpose = new Transpose(param, new GPU());
+
+  transpose.setup([x], [y]);
+  transpose.forward([x], [y]);
+
+  const xData = x.toArray();
+  const yData = y.toArray();
+
+  const refY = refTranspose2d(xData, [100, 5]);
+  expectAllClose(yData, refY, 0.0001);
+});
+
+test('test-transpose3d', () => {
   const x = Variable.rand('x', [100, 5, 2]);
   const y = Variable.rand('y', [5, 100, 2]);
   const param = new TransposeParameter();
@@ -31,6 +60,6 @@ test('test-transpose', () => {
   const xData = x.toArray();
   const yData = y.toArray();
 
-  const refY = refTranspose(xData, [100, 5, 2]);
+  const refY = refTranspose3d(xData, [100, 5, 2]);
   expectAllClose(yData, refY, 0.0001);
 });
