@@ -15,6 +15,7 @@ import {
   RandnParameter,
   ReshapeParameter,
   SoftmaxParameter,
+  TransposeParameter,
 } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
 import { getOrThrow } from '../utils';
@@ -40,6 +41,7 @@ import Sigmoid from './sigmoid';
 import Softmax from './softmax';
 import Sub2 from './sub2';
 import Tanh from './tanh';
+import Transpose from './transpose';
 
 export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImpl {
   const functionType = func.getType();
@@ -100,6 +102,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Sub2(gpu);
     case 'Tanh':
       return new Tanh(gpu);
+    case 'Transpose':
+      return new Transpose(getOrThrow<TransposeParameter>(func.getTransposeParam()), gpu);
     default:
       throw Error(`${functionType} is not supported yet.`);
   }
