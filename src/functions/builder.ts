@@ -18,6 +18,7 @@ import {
   ReshapeParameter,
   SliceParameter,
   SoftmaxParameter,
+  SplitParameter,
   TransposeParameter,
 } from '../proto/nnabla_pb';
 import FunctionImpl from './base';
@@ -45,6 +46,7 @@ import Reshape from './reshape';
 import Slice from './slice';
 import Sigmoid from './sigmoid';
 import Softmax from './softmax';
+import Split from './split';
 import Sub2 from './sub2';
 import Tanh from './tanh';
 import Transpose from './transpose';
@@ -110,6 +112,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Sigmoid(gpu);
     case 'Softmax':
       return new Softmax(getOrThrow<SoftmaxParameter>(func.getSoftmaxParam()), gpu);
+    case 'Split':
+      return new Split(getOrThrow<SplitParameter>(func.getSplitParam()), gpu);
     case 'Sub2':
       return new Sub2(gpu);
     case 'Tanh':
