@@ -3,6 +3,7 @@ import {
   Function,
   AddScalarParameter,
   AffineParameter,
+  ArangeParameter,
   AveragePoolingParameter,
   BatchNormalizationParameter,
   ConvolutionParameter,
@@ -24,6 +25,7 @@ import { getOrThrow } from '../utils';
 import Add2 from './add2';
 import AddScalar from './addScalar';
 import Affine from './affine';
+import Arange from './arange';
 import AveragePooling from './averagePooling';
 import BatchNormalization from './batchNormalization';
 import Convolution from './convolution';
@@ -56,6 +58,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new AddScalar(getOrThrow<AddScalarParameter>(func.getAddScalarParam()), gpu);
     case 'Affine':
       return new Affine(getOrThrow<AffineParameter>(func.getAffineParam()), gpu);
+    case 'Arange':
+      return new Arange(getOrThrow<ArangeParameter>(func.getArangeParam()), gpu);
     case 'AveragePooling':
       return new AveragePooling(
         getOrThrow<AveragePoolingParameter>(func.getAveragePoolingParam()),
