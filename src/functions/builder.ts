@@ -6,6 +6,7 @@ import {
   ArangeParameter,
   AveragePoolingParameter,
   BatchNormalizationParameter,
+  ConcatenateParameter,
   ConvolutionParameter,
   DeconvolutionParameter,
   DepthwiseConvolutionParameter,
@@ -29,6 +30,7 @@ import Affine from './affine';
 import Arange from './arange';
 import AveragePooling from './averagePooling';
 import BatchNormalization from './batchNormalization';
+import Concatenate from './concatenate';
 import Convolution from './convolution';
 import Deconvolution from './deconvolution';
 import DepthwiseConvolution from './depthwiseConvolution';
@@ -72,6 +74,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
         getOrThrow<BatchNormalizationParameter>(func.getBatchNormalizationParam()),
         gpu,
       );
+    case 'Concatenate':
+      return new Concatenate(getOrThrow<ConcatenateParameter>(func.getConcatenateParam()), gpu);
     case 'Convolution':
       return new Convolution(getOrThrow<ConvolutionParameter>(func.getConvolutionParam()), gpu);
     case 'Deconvolution':
