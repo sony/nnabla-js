@@ -37,6 +37,7 @@ import Deconvolution from './deconvolution';
 import DepthwiseConvolution from './depthwiseConvolution';
 import Div2 from './div2';
 import ELU from './elu';
+import Exp from './exp';
 import LeakyReLU from './leakyRelu';
 import MaxPooling from './maxPooling';
 import Mul2 from './mul2';
@@ -94,6 +95,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Div2(gpu);
     case 'ELU':
       return new ELU(getOrThrow<ELUParameter>(func.getEluParam()), gpu);
+    case 'Exp':
+      return new Exp(gpu);
     case 'LeakyReLU':
       return new LeakyReLU(getOrThrow<LeakyReLUParameter>(func.getLeakyReluParam()), gpu);
     case 'MaxPooling':
