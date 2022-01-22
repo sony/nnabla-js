@@ -14,6 +14,7 @@ import {
   LeakyReLUParameter,
   MaxPoolingParameter,
   MulScalarParameter,
+  NmsDetection2dParameter,
   PowScalarParameter,
   RandnParameter,
   ReshapeParameter,
@@ -40,6 +41,7 @@ import LeakyReLU from './leakyRelu';
 import MaxPooling from './maxPooling';
 import Mul2 from './mul2';
 import MulScalar from './mulScalar';
+import NmsDetection2d from './nmsDetection2d';
 import Pow2 from './pow2';
 import PowScalar from './powScalar';
 import Randn from './randn';
@@ -100,6 +102,8 @@ export default function buildFunctionImpl(func: Function, gpu: GPU): FunctionImp
       return new Mul2(gpu);
     case 'MulScalar':
       return new MulScalar(getOrThrow<MulScalarParameter>(func.getMulScalarParam()), gpu);
+    case 'NmsDetection2d':
+      return new NmsDetection2d(getOrThrow<NmsDetection2dParameter>(func.getNmsDetection2dParam()));
     case 'Pow2':
       return new Pow2(gpu);
     case 'PowScalar':
