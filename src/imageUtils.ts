@@ -36,8 +36,8 @@ export function convertImageToArray(
   channel: number,
   multiplier: number | undefined,
 ): number[] {
-  const height = imageData.height;
-  const width = imageData.width;
+  const { height } = imageData;
+  const { width } = imageData;
   const y = [];
   if (channel === 1) {
     for (let i = 0; i < height * width; i += 1) {
@@ -62,7 +62,7 @@ export function convertImageToArray(
 export function createResizeKernel(
   outShape: number[],
   gpu: GPU,
-  dynamicSize: boolean|undefined,
+  dynamicSize: boolean | undefined,
 ): IKernelRunShortcut {
   const [oC, oH, oW] = outShape;
 
@@ -86,7 +86,7 @@ export function createResizeKernel(
     })
     .setConstants({ oC, oH, oW })
     .setOutput([oC * oH * oW])
-    .setDynamicArguments(dynamicSize ? true : false)
+    .setDynamicArguments(!!dynamicSize)
     .setPipeline(true);
 
   return kernel;
