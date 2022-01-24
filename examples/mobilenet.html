@@ -23,7 +23,7 @@
   let nnp = undefined;
   const gpu = new GPU();
   const image = new Image();
-  const resizeKernel = nnabla.ImageUtils.createResizeKernel([3, 224, 224], gpu);
+  const resizeKernel = nnabla.ImageUtils.createResizeKernel([3, 224, 224], gpu, true);
 
   document.getElementById("nnpFile").addEventListener("change", function (evt) {
     const file = evt.target.files[0];
