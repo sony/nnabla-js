@@ -62,6 +62,7 @@ export function convertImageToArray(
 export function createResizeKernel(
   outShape: number[],
   gpu: GPU,
+  dynamicSize: boolean|undefined,
 ): IKernelRunShortcut {
   const [oC, oH, oW] = outShape;
 
@@ -85,6 +86,7 @@ export function createResizeKernel(
     })
     .setConstants({ oC, oH, oW })
     .setOutput([oC * oH * oW])
+    .setDynamicArguments(dynamicSize ? true : false)
     .setPipeline(true);
 
   return kernel;

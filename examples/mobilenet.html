@@ -17,6 +17,7 @@
   <h2>Execution Time</h2>
   <p id="time">Exection time: </p>
 </body>
+<script src="./imagenet_class_index.js"></script>
 <script src="../dist/index.js"></script>
 <script>
   let nnp = undefined;
@@ -46,11 +47,15 @@
   }, false);
 
   image.onload = function(e) {
+    // Preprocess image
     const imageData = createImageData(e.target);
     const array = nnabla.ImageUtils.convertImageToArray(imageData, 3, 1.0);
     const resizedArray = resizeKernel(array, imageData.height, imageData.width);
     const resizedData = nnabla.ImageUtils.convertArrayToImage(resizedArray.toArray(), 3, 224, 224, 1.0);
+
+    // Update preview
     document.getElementById("preview").getContext("2d").putImageData(resizedData, 0, 0);
+
     if (nnp === undefined) {
       console.log("load NNP first.")
       document.getElementById("result").innerHTML = "Load NNP first.";
@@ -67,7 +72,7 @@
           maxIndex = i;
         }
       }
-      document.getElementById("result").innerHTML = "Class: " + maxIndex;
+      document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
       document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
     }
   }
