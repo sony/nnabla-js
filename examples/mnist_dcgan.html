@@ -51,27 +51,8 @@
     const totalTime = endTime - startTime;
     document.getElementById("time").innerHTML = "Exection time: " + totalTime + "ms";
 
-    const imageData = createImageData(convertGray2RGBA(output.y));
+    const imageData = nnabla.ImageUtils.convertArrayToImage(output.y, 1, 28, 28);
 
     document.getElementById("preview").getContext("2d").putImageData(imageData, 0, 0);
   }, false);
-
-  function createImageData(rgbaData) {
-    const imageData = new ImageData(28, 28);
-    for (let i = 0; i < 28 * 28 * 4; ++i) {
-      imageData.data[i] = rgbaData[i];
-    }
-    return imageData;
-  }
-
-  function convertGray2RGBA(data) {
-    const ret = [];
-    for (let i = 0; i < 28 * 28; ++i) {
-      for (let j = 0; j < 3; ++j) {
-        ret.push(Math.floor(data[i] * 255));
-      }
-      ret.push(255);
-    }
-    return ret;
-  }
 </script>

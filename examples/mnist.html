@@ -50,7 +50,7 @@
       console.log("load NNP first.")
       document.getElementById("result").innerHTML = "Load NNP first.";
     } else {
-      const data = convertRGB2Gray(imageData.data);
+      const data = nnabla.ImageUtils.convertImageToArray(imageData, 1, 28, 28, 1.0);
 
       const startTime = performance.now();
       const output = nnp.forward("runtime", {"x0": data});
@@ -77,17 +77,5 @@
     ctx.drawImage(img, 0, 0);
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return data;
-  }
-
-  function convertRGB2Gray(data) {
-    const ret = [];
-    for (let i = 0; i < 28 * 28; ++i) {
-      const index = i * 4;
-      const r = data[index];
-      const g = data[index + 1];
-      const b = data[index + 2];
-      ret.push(Number((r + g + b) / 3.0));
-    }
-    return ret;
   }
 </script>
