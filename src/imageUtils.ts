@@ -34,10 +34,10 @@ export function convertArrayToImage(
 export function convertImageToArray(
   imageData: ImageData,
   channel: number,
-  height: number,
-  width: number,
   multiplier: number | undefined,
 ): number[] {
+  const height = imageData.height;
+  const width = imageData.width;
   const y = [];
   if (channel === 1) {
     for (let i = 0; i < height * width; i += 1) {
@@ -60,21 +60,16 @@ export function convertImageToArray(
 }
 
 export function createResizeKernel(
-  inShape: number[],
   outShape: number[],
   gpu: GPU,
 ): IKernelRunShortcut {
-  const [iC, iH, iW] = inShape;
   const [oC, oH, oW] = outShape;
-  if (iC !== oC) {
-    throw Error('channel must be the same between input and output.');
-  }
 
   const kernel = gpu
-    .createKernel(function (x: number[]): number {
-      const hScale = (this.constants.oH as number) / (this.constants.iH as number);
-      const wScale = (this.constants.oW as number) / (this.constants.iW as number);
-      const inSize = (this.constants.iH as number) * (this.constants.iW as number);
+    .createKernel(function (x: number[], iH: number, iW: number): number {
+      const hScale = (this.constants.oH as number) / iH;
+      const wScale = (this.constants.oW as number) / iW;
+      const inSize = iH * iW;
       const outSize = (this.constants.oH as number) * (this.constants.oW as number);
 
       // output index
@@ -85,10 +80,10 @@ export function createResizeKernel(
       // input index
       const inHIndex = Math.floor(hIndex / hScale);
       const inWIndex = Math.floor(wIndex / wScale);
-      const inIndex = cIndex * inSize + inHIndex * (this.constants.iW as number) + inWIndex;
+      const inIndex = cIndex * inSize + inHIndex * iW + inWIndex;
       return x[inIndex];
     })
-    .setConstants({ iC, iH, iW, oC, oH, oW })
+    .setConstants({ oC, oH, oW })
     .setOutput([oC * oH * oW])
     .setPipeline(true);
 

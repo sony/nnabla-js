@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>MNIST Example</title>
+  <title>MobileNet-v2 Example</title>
 </head>
 <body>
   <h2>Choose NNP</h2>
@@ -10,7 +10,7 @@
   <h2>Choose Image</h2>
   <input type="file" id="imageFile" />
   <div>
-    <canvas id="preview" width=28 height=28></canvas>
+    <canvas id="preview" width=224 height=224></canvas>
   </div>
   <h2>Classification Result</h2>
   <p id="result">Class: </p>
@@ -20,13 +20,15 @@
 <script src="../dist/index.js"></script>
 <script>
   let nnp = undefined;
+  const gpu = new GPU();
   const image = new Image();
+  const resizeKernel = nnabla.ImageUtils.createResizeKernel([3, 224, 224], gpu);
 
   document.getElementById("nnpFile").addEventListener("change", function (evt) {
     const file = evt.target.files[0];
     const reader = new FileReader();
     reader.onload = function () {
-      nnabla.NNP.fromNNPData(this.result).then(function(n) {
+      nnabla.NNP.fromNNPData(this.result, gpu).then(function(n) {
         nnp = n;
       });
     };
@@ -45,20 +47,21 @@
 
   image.onload = function(e) {
     const imageData = createImageData(e.target);
-    document.getElementById("preview").getContext("2d").putImageData(imageData, 0, 0);
+    const array = nnabla.ImageUtils.convertImageToArray(imageData, 3, 1.0);
+    const resizedArray = resizeKernel(array, imageData.height, imageData.width);
+    const resizedData = nnabla.ImageUtils.convertArrayToImage(resizedArray.toArray(), 3, 224, 224, 1.0);
+    document.getElementById("preview").getContext("2d").putImageData(resizedData, 0, 0);
     if (nnp === undefined) {
       console.log("load NNP first.")
       document.getElementById("result").innerHTML = "Load NNP first.";
     } else {
-      const data = nnabla.ImageUtils.convertImageToArray(imageData, 1, 1.0);
-
       const startTime = performance.now();
-      const output = nnp.forward("runtime", {"x0": data});
+      const output = nnp.forward("runtime", {"x0": resizedArray});
       const endTime = performance.now();
 
       let maxIndex = 0;
       let maxValue = output["y0"][0];
-      for (let i = 1; i < 10; ++i) {
+      for (let i = 1; i < 1000; ++i) {
         if (output["y0"][i] > maxValue) {
           maxValue = output["y0"][i];
           maxIndex = i;
