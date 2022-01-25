@@ -30,7 +30,7 @@
   let nnp = undefined;
   const gpu = new GPU();
   const image = new Image();
-  const resizeKernel = nnabla.ImageUtils.createResizeKernel([3, 224, 224], gpu, true);
+  const resizeKernel = nnabla.ImageUtils.createAsyncResizeKernel([3, 224, 224], gpu, true);
 
   document.getElementById("nnpFile").addEventListener("change", function (evt) {
     const file = evt.target.files[0];
@@ -57,33 +57,33 @@
     // Preprocess image
     const imageData = createImageData(e.target);
     const array = nnabla.ImageUtils.convertImageToArray(imageData, 3, 1.0);
-    const resizedArray = resizeKernel(array, imageData.height, imageData.width);
-    const resizedData = nnabla.ImageUtils.convertArrayToImage(resizedArray.toArray(), 3, 224, 224, 1.0);
+    resizeKernel(array, imageData.height, imageData.width).then(resizedArray => {
+      // Update preview
+      const resizedData = nnabla.ImageUtils.convertArrayToImage(resizedArray.toArray(), 3, 224, 224, 1.0);
+      document.getElementById("preview").getContext("2d").putImageData(resizedData, 0, 0);
 
-    // Update preview
-    document.getElementById("preview").getContext("2d").putImageData(resizedData, 0, 0);
+      if (nnp === undefined) {
+        console.log("load NNP first.")
+        document.getElementById("result").innerHTML = "Load NNP first.";
+      } else {
+        const startTime = performance.now();
+        nnp.forwardAsync("runtime", {"x0": resizedArray}).then(function(output) {
+          const endTime = performance.now();
 
-    if (nnp === undefined) {
-      console.log("load NNP first.")
-      document.getElementById("result").innerHTML = "Load NNP first.";
-    } else {
-      const startTime = performance.now();
-      nnp.forwardAsync("runtime", {"x0": resizedArray}).then(function(output) {
-        const endTime = performance.now();
-
-        let maxIndex = 0;
-        let maxValue = output["y0"][0];
-        for (let i = 1; i < 1000; ++i) {
-          if (output["y0"][i] > maxValue) {
-            maxValue = output["y0"][i];
-            maxIndex = i;
+          let maxIndex = 0;
+          let maxValue = output["y0"][0];
+          for (let i = 1; i < 1000; ++i) {
+            if (output["y0"][i] > maxValue) {
+              maxValue = output["y0"][i];
+              maxIndex = i;
+            }
           }
-        }
 
-        document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
-        document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
-      });
-    }
+          document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
+          document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
+        });
+      }
+    });
   }
 
   function createImageData(img) {

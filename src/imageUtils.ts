@@ -1,4 +1,4 @@
-import { GPU, IKernelRunShortcut } from 'gpu.js';
+import { GPU, IKernelRunShortcut, Texture } from 'gpu.js';
 
 /**
  * Returns ImageData object from Array.
@@ -137,4 +137,43 @@ export function createResizeKernel(
     .setPipeline(true);
 
   return kernel;
+}
+
+/**
+ * Returns the asynchronous execution function that resizes images to the specified size.
+ *
+ * @param outShape - The target image size (C, H, W).
+ * @param gpu - The GPU instance.
+ * @param dynamicSize - The flag to accept the different input sizes.
+ * @returns The kernel function that resizes the images.
+ *
+ * @example
+ * ```
+ * // create kernel
+ * const resizeKernel = nnabla.ImageUtils.createResizeKernel([3, 224, 224], gpu, true);
+ *
+ * // resize image
+ * const imageData = // source ImageData object.
+ * const array = nnabla.ImageUtils.convertImageToArray(imageData, 3);
+ * resizeKernel(array, imageData.height, imageData.width).then(resizedImage => {
+ *   console.log(resizedImage.length)  // 3x224x224
+ * });
+ * ```
+ *
+ */
+export function createAsyncResizeKernel(
+  outShape: number[],
+  gpu: GPU,
+  dynamicSize: boolean | undefined,
+): (x: number[], H: number, W: number) => Promise<Texture> {
+  const kernel = createResizeKernel(outShape, gpu, dynamicSize);
+  return (x: number[], H: number, W: number): Promise<Texture> =>
+    new Promise<Texture>((resolve, reject) => {
+      try {
+        const output = kernel(x, H, W) as Texture;
+        resolve(output);
+      } catch (error) {
+        reject(error);
+      }
+    });
 }
