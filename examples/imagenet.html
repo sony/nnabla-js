@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>MobileNet-v2 Example</title>
+  <title>ImageNet Example</title>
 </head>
 <body>
+  <h2>Create NNP</h2>
+  <pre>
+    $ git clone https://github.com/nnabla/nnabla-js
+    $ cd nnabla-js
+    $ python scripts/create_imagenet_nnp.py
+    $ ls imagenet.nnp
+  </pre>
   <h2>Choose NNP</h2>
   <input type="file" id="nnpFile" />
   <h2>Choose Image</h2>
@@ -61,19 +68,21 @@
       document.getElementById("result").innerHTML = "Load NNP first.";
     } else {
       const startTime = performance.now();
-      const output = nnp.forward("runtime", {"x0": resizedArray});
-      const endTime = performance.now();
+      nnp.forwardAsync("runtime", {"x0": resizedArray}).then(function(output) {
+        const endTime = performance.now();
 
-      let maxIndex = 0;
-      let maxValue = output["y0"][0];
-      for (let i = 1; i < 1000; ++i) {
-        if (output["y0"][i] > maxValue) {
-          maxValue = output["y0"][i];
-          maxIndex = i;
+        let maxIndex = 0;
+        let maxValue = output["y0"][0];
+        for (let i = 1; i < 1000; ++i) {
+          if (output["y0"][i] > maxValue) {
+            maxValue = output["y0"][i];
+            maxIndex = i;
+          }
         }
-      }
-      document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
-      document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
+
+        document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
+        document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
+      });
     }
   }
 
