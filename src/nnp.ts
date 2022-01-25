@@ -19,6 +19,13 @@ interface ProtoNNP {
   executors: ProtoExecutor[];
 }
 
+/**
+ * Unzips .nnp binary data.
+ *
+ * @param data - The .nnp binary data.
+ * @returns The Promise object that returns unzipped structured object.
+ *
+ */
 export function unzipNNP(data: Uint8Array): Promise<ProtoNNP> {
   return new JSZip().loadAsync(data).then(async (zip) => {
     // Extract version number
@@ -76,6 +83,14 @@ export class NNP {
     this.variableManager = variableManager;
   }
 
+  /**
+   * Instantiates NNP object from .nnp binary data.
+   *
+   * @param data - The .nnp binary data.
+   * @param gpu - The GPU instance. If not given, the new GPU instance will be created.
+   * @returns The NNP object.
+   *
+   */
   static fromNNPData(data: Uint8Array, gpu: GPU | undefined): Promise<NNP> {
     return unzipNNP(data).then((nnp) => {
       const ctx = gpu === undefined ? new GPU() : gpu;
@@ -99,6 +114,19 @@ export class NNP {
     });
   }
 
+  /**
+   * Performs forward propagation with the specified executor.
+   *
+   * @remarks
+   * This method will block until the result is retrieved.
+   * Please check forwardAsync for the asynchronous execution.
+   *
+   * @param executorName - The specified executor name.
+   * @param data - The mapping of input variable data.
+   * @param config - The config object.
+   * @returns The mapping of output variable data.
+   *
+   */
   forward(
     executorName: string,
     data: { [key: string]: number[] },
@@ -107,13 +135,23 @@ export class NNP {
     return this.executors[executorName].forward(data, config);
   }
 
+  /**
+   * Asnchronously perform forward propagation with the specified executor.
+   *
+   * @param executorName - The specified executor name.
+   * @param data - The mapping of input variable data.
+   * @param config - The config object.
+   * @returns The Promise object that returns the mapping of output variable data.
+   *
+   */
   forwardAsync(
     executorName: string,
     data: { [key: string]: number[] },
+    config?: ForwardConfig,
   ): Promise<{ [key: string]: number[] }> {
     return new Promise((resolve, reject) => {
       try {
-        const output = this.forward(executorName, data);
+        const output = this.forward(executorName, data, config);
         resolve(output);
       } catch (error) {
         reject(error);

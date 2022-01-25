@@ -1,5 +1,19 @@
 import { GPU, IKernelRunShortcut } from 'gpu.js';
 
+/**
+ * Returns ImageData object from Array.
+ *
+ * @remarks
+ * The pixel data must be aranged in (C, H, W).
+ *
+ * @param array - The source pixel data.
+ * @param channel - The channel size of the pixel data.
+ * @param height - The image height.
+ * @param width - The image width.
+ * @param multiplier - The multiplier applied to each pixel. If not given, each pixel will be multiplied by 255.
+ * @returns The ImageData object.
+ *
+ */
 export function convertArrayToImage(
   array: number[],
   channel: number,
@@ -31,6 +45,18 @@ export function convertArrayToImage(
   return imageData;
 }
 
+/**
+ * Returns Array object from ImageData.
+ *
+ * @remarks
+ * The resulted array is aranged in (C, H, W).
+ *
+ * @param imageData - The source ImageData object.
+ * @param channel - The channel size. If 1 is given, each pixel is averanged over RGB.
+ * @param multiplier - The multiplier applied to each pixel. If not given, each pixel will be divided by 255.
+ * @returns The Array object.
+ *
+ */
 export function convertImageToArray(
   imageData: ImageData,
   channel: number,
@@ -59,6 +85,27 @@ export function convertImageToArray(
   return y;
 }
 
+/**
+ * Returns the kernel function that resizes images to the specified size.
+ *
+ * @param outShape - The target image size (C, H, W).
+ * @param gpu - The GPU instance.
+ * @param dynamicSize - The flag to accept the different input sizes.
+ * @returns The kernel function that resizes the images.
+ *
+ * @example
+ * ```
+ * // create kernel
+ * const resizeKernel = nnabla.ImageUtils.createResizeKernel([3, 224, 224], gpu, true);
+ *
+ * // resize image
+ * const imageData = // source ImageData object.
+ * const array = nnabla.ImageUtils.convertImageToArray(imageData, 3);
+ * const resizedImage = resizeKernel(array, imageData.height, imageData.width);
+ * console.log(resizedImage.length)  // 3x224x224
+ * ```
+ *
+ */
 export function createResizeKernel(
   outShape: number[],
   gpu: GPU,
