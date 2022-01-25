@@ -14,6 +14,7 @@
   </pre>
   <h2>Choose NNP</h2>
   <input type="file" id="nnpFile" />
+  <p id="loadProgress"></p>
   <h2>Choose Image</h2>
   <input type="file" id="imageFile" />
   <div>
@@ -33,11 +34,13 @@
   const resizeKernel = nnabla.ImageUtils.createAsyncResizeKernel([3, 224, 224], gpu, true);
 
   document.getElementById("nnpFile").addEventListener("change", function (evt) {
+    document.getElementById("loadProgress").innerHTML = "Loading NNP...";
     const file = evt.target.files[0];
     const reader = new FileReader();
     reader.onload = function () {
       nnabla.NNP.fromNNPData(this.result, gpu).then(function(n) {
         nnp = n;
+        document.getElementById("loadProgress").innerHTML = "Completed";
       });
     };
     reader.readAsBinaryString(file);
