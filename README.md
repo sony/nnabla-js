@@ -1,5 +1,6 @@
 # nnabla-js
 [![test](https://github.com/nnabla/nnabla-js/actions/workflows/test.yaml/badge.svg)](https://github.com/nnabla/nnabla-js/actions/workflows/test.yaml)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/nnabla/nnabla-js/blob/master/LICENSE)
 
 A JavaScript runtime for Neural Network Libraries.
 
