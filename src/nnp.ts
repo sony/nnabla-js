@@ -92,9 +92,15 @@ export class NNP {
 
   variableManager: VariableManager;
 
-  constructor(executors: { [key: string]: Executor }, variableManager: VariableManager) {
+  ctx: GPU;
+
+  released: boolean;
+
+  constructor(executors: { [key: string]: Executor }, variableManager: VariableManager, ctx: GPU) {
     this.executors = executors;
     this.variableManager = variableManager;
+    this.ctx = ctx;
+    this.released = false;
   }
 
   /**
@@ -124,7 +130,7 @@ export class NNP {
         executors[executor.name] = executor;
       }
 
-      return new NNP(executors, variableManager);
+      return new NNP(executors, variableManager, ctx);
     });
   }
 
@@ -146,6 +152,7 @@ export class NNP {
     data: { [key: string]: number[] },
     config?: ForwardConfig,
   ): { [key: string]: number[] } {
+    this.checkRelease();
     return this.executors[executorName].forward(data, config);
   }
 
@@ -163,6 +170,7 @@ export class NNP {
     data: { [key: string]: number[] },
     config?: ForwardConfig,
   ): Promise<{ [key: string]: number[] }> {
+    this.checkRelease();
     return new Promise((resolve, reject) => {
       try {
         const output = this.forward(executorName, data, config);
@@ -171,5 +179,26 @@ export class NNP {
         reject(error);
       }
     });
+  }
+
+  /**
+   * Release allocated memories.
+   *
+   * @remarks
+   * Once this function is called, any further interaction with this object will raise errors.
+   *
+   * @returns The promise object that returns when finised.
+   *
+   */
+  release(): Promise<void> {
+    this.checkRelease();
+    this.released = true;
+    return this.ctx.destroy();
+  }
+
+  private checkRelease(): void {
+    if (this.released) {
+      throw Error('release function is already called.');
+    }
   }
 }
