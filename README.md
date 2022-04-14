@@ -8,6 +8,11 @@ A JavaScript runtime for Neural Network Libraries.
 - Load and execute `.nnp` files
 - Support GPU (WebGL)
 
+## installation
+```
+$ npm install nnabla-js
+```
+
 ## example
 Check out more [examples](examples)!
 
