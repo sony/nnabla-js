@@ -19,7 +19,7 @@ Check out more [examples](examples)!
 
 ```js
 const fs = require('fs');
-const nnabla = require('dist/index.js');
+const nnabla = require('nnabla-js');
 
 const x = [...Array(28 * 28)].map(() => Math.random() * 2.0 - 1.0);
 
