@@ -10,6 +10,7 @@ A JavaScript runtime for Neural Network Libraries.
 - Run on web browsers
 - Load and execute `.nnp` files
 - Support GPU (WebGL)
+- Preprocess utilities (e.g. image resizing)
 
 ## installation
 ```
