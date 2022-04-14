@@ -1,7 +1,7 @@
 {
-  "name": "nnabla",
-  "version": "1.0.0",
-  "description": "JavaScript runtime for Neural Network Libraries",
+  "name": "nnabla-js",
+  "version": "0.1.0",
+  "description": "A JavaScript runtime for Neural Network Libraries",
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/s-takuseno/nnabla-js.git"
+    "url": "https://github.com/sony/nnabla-js"
   },
   "author": "Takuma Seno",
-  "license": "ISC",
+  "license": "apache-2.0",
   "bugs": {
-    "url": "https://github.com/s-takuseno/nnabla-js/issues"
+    "url": "https://github.com/sony/nnabla-js/issues"
   },
-  "homepage": "https://github.com/s-takuseno/nnabla-js#readme",
+  "homepage": "https://github.com/sony/nnabla-js#readme",
   "dependencies": {
     "gpu.js": "^2.11.4",
     "jszip": "^3.7.1"

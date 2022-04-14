@@ -1,14 +1,16 @@
 # nnabla-js
-[![test](https://github.com/s-takuseno/nnabla-js/actions/workflows/test.yaml/badge.svg)](https://github.com/s-takuseno/nnabla-js/actions/workflows/test.yaml)
+[![test](https://github.com/nnabla/nnabla-js/actions/workflows/test.yaml/badge.svg)](https://github.com/nnabla/nnabla-js/actions/workflows/test.yaml)
 
 A JavaScript runtime for Neural Network Libraries.
 
 ## key features
-- Run on web browser
-- Load and execute NNP
+- Run on web browsers
+- Load and execute `.nnp` files
 - Support GPU (WebGL)
 
 ## example
+Check out more [examples](examples)!
+
 ```js
 const fs = require('fs');
 const nnabla = require('dist/index.js');
