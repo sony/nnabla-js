@@ -38,7 +38,7 @@ fs.readFile('mnist.nnp', (_, data) => {
 ```
 $ npm install
 $ ./scripts/build_protobuf_file.sh
-$ npm run build
+$ npm run build:dev
 ```
 
 ## test

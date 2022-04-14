@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "description": "A JavaScript runtime for Neural Network Libraries",
   "main": "dist/index.js",
+  "typings": "dist/index",
   "scripts": {
     "test": "jest",
     "lint:check": "eslint src test --ext ts",
     "lint:fix": "eslint src test --ext ts --fix",
-    "build": "webpack"
+    "build:dev": "webpack --config webpack.dev.js",
+    "build:prod": "webpack --config webpack.prod.js"
   },
   "repository": {
     "type": "git",
