@@ -4,6 +4,7 @@
   "description": "A JavaScript runtime for Neural Network Libraries",
   "main": "dist/index.js",
   "typings": "dist/index",
+  "files": ["dist"],
   "scripts": {
     "test": "jest",
     "lint:check": "eslint src test --ext ts",
