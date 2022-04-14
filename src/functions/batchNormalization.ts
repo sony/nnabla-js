@@ -24,7 +24,7 @@ export default class BatchNormalization implements FunctionImpl {
 
   setup(inputs: Variable[], outputs: Variable[]): void {
     if (this.param.getBatchStat()) {
-      throw Error('batch_stat=True is not supported.');
+      console.warn('batch_stat=True is not supported. Force batch_stat=False.');
     }
 
     this.noBias = inputs.length < 5;
