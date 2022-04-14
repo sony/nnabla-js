@@ -4,6 +4,8 @@
 
 A JavaScript runtime for Neural Network Libraries.
 
+![demo](https://user-images.githubusercontent.com/72241882/163357484-4efd5533-1e80-45f0-9e9c-cd3bd3f4fd0b.gif)
+
 ## key features
 - Run on web browsers
 - Load and execute `.nnp` files
