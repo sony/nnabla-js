@@ -49,8 +49,8 @@
     const file = evt.target.files[0];
     const reader = new FileReader();
     reader.onload = function () {
-      nnabla.NNP.fromNNPData(this.result).then(function(n) {
-        nnp = n;
+      nnabla.NNP.fromNNPData(this.result).then(function(_nnp) {
+        nnp = _nnp;
       });
     };
     reader.readAsBinaryString(file);

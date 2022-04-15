@@ -54,8 +54,8 @@
     const file = evt.target.files[0];
     const reader = new FileReader();
     reader.onload = function () {
-      nnabla.NNP.fromNNPData(this.result, gpu).then(function(n) {
-        nnp = n;
+      nnabla.NNP.fromNNPData(this.result, gpu).then(function(_nnp) {
+        nnp = _nnp;
         document.getElementById("loadProgress").innerHTML = "Completed";
       });
     };
