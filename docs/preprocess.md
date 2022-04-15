@@ -38,7 +38,7 @@ const gpu = new GPU()
 const resizeKernel = nnabla.ImageUtils.createAsyncResizeKernel([3, 28, 28], gpu, true)
 
 // image data uploaded by a user with a shape of (3, 28, 56)
-const x = [...Array(3 * 56 * 56)].map(() => Math.random() * 2.0 - 1.0)
+const x = [...Array(3 * 28 * 56)].map(() => Math.random() * 2.0 - 1.0)
 
 resizeKernel(x, 56, 28).then((texture) => {
   // need to convert to Array if you want to interact with the contents
