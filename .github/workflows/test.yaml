@@ -33,3 +33,4 @@ jobs:
       - run: npm run lint:check
       - run: npm test
       - run: npm run build:prod
+      - run: python build_tools/copyright_checker.py --check-only

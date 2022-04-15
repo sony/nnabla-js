@@ -257,12 +257,16 @@ def main(args):
             old_header = c.extract_file_header()
             if new_header == old_header:
                 continue
-            with open(str(fn), "w", encoding='utf-8') as fh:
-                fh.write(c.replace_file_header(old_header, new_header))
+            if args.check_only:
+                raise ValueError(f"invalid copyright is found at {fn}")
+            else:
+                with open(str(fn), "w", encoding='utf-8') as fh:
+                    fh.write(c.replace_file_header(old_header, new_header))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--rootdir', type=str, default='./')
+    parser.add_argument('--check-only', action="store_true")
     args = parser.parse_args()
     main(args)
