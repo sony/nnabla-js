@@ -258,7 +258,9 @@ def main(args):
             if new_header == old_header:
                 continue
             if args.check_only:
-                raise ValueError(f"invalid copyright is found at {fn}")
+                raise ValueError(
+                    f"invalid copyright is found at {fn}: expected={new_header}, actual={old_header}"
+                )
             else:
                 with open(str(fn), "w", encoding='utf-8') as fh:
                     fh.write(c.replace_file_header(old_header, new_header))
