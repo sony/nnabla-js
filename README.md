@@ -36,6 +36,9 @@ fs.readFile('mnist.nnp', (_, data) => {
 });
 ```
 
+## documentation
+Documents are available in [docs](docs).
+
 ## build
 `protoc` command must be installed prior to build.
 
