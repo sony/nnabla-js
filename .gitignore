@@ -6,4 +6,5 @@ src/proto/nnabla_pb.d.ts
 dist
 
 *.nnp
+*.proto
 mnist_images
