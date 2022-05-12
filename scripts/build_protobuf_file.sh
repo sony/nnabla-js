@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: download generated proto file
+# download generated proto file
+mkdir -p proto
+wget https://nnabla.org/cpplib/1.28.0/nnabla.proto -O proto/nnabla.proto
 
 PROTOC_GEN_TS_PATH="node_modules/.bin/protoc-gen-ts"
 OUT_DIR="src"
