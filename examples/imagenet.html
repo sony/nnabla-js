@@ -43,22 +43,44 @@
   <p id="time">Exection time: </p>
 </body>
 <script src="./imagenet_class_index.js"></script>
-<script src="../dist/index.js"></script>
 <script>
-  let nnp = undefined;
-  const gpu = new GPU();
+  let startTime = 0;
   const image = new Image();
-  const resizeKernel = nnabla.ImageUtils.createAsyncResizeKernel([3, 224, 224], gpu, true);
+
+  // larger networks take longer processing time.
+  // let's offload the computation on Web Worker.
+  const worker = new Worker("./worker.js");
+
+  worker.addEventListener("message", (e) => {
+    if (e.data.type === "loadCompleted") {
+      document.getElementById("loadProgress").innerHTML = "Completed";
+    } else if (e.data.type === "executeCompleted") {
+      const endTime = performance.now();
+      document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
+
+      // update preview
+      document.getElementById("preview").getContext("2d").putImageData(e.data.resizedImage, 0, 0);
+
+      // choose the best class
+      const output = e.data.data;
+      let maxIndex = 0;
+      let maxValue = output["y0"][0];
+      for (let i = 1; i < 1000; ++i) {
+        if (output["y0"][i] > maxValue) {
+          maxValue = output["y0"][i];
+          maxIndex = i;
+        }
+      }
+      document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
+    }
+  });
 
   document.getElementById("nnpFile").addEventListener("change", function (evt) {
     document.getElementById("loadProgress").innerHTML = "Loading NNP...";
     const file = evt.target.files[0];
     const reader = new FileReader();
     reader.onload = function () {
-      nnabla.NNP.fromNNPData(this.result, gpu).then(function(_nnp) {
-        nnp = _nnp;
-        document.getElementById("loadProgress").innerHTML = "Completed";
-      });
+      worker.postMessage({type: "load", data: this.result});
     };
     reader.readAsBinaryString(file);
   }, false);
@@ -74,36 +96,11 @@
   }, false);
 
   image.onload = function(e) {
-    // Preprocess image
     const imageData = createImageData(e.target);
-    const array = nnabla.ImageUtils.convertImageToArray(imageData, 3, 1.0);
-    resizeKernel(array, imageData.height, imageData.width).then(resizedArray => {
-      // Update preview
-      const resizedData = nnabla.ImageUtils.convertArrayToImage(resizedArray.toArray(), 3, 224, 224, 1.0);
-      document.getElementById("preview").getContext("2d").putImageData(resizedData, 0, 0);
-
-      if (nnp === undefined) {
-        console.log("load NNP first.")
-        document.getElementById("result").innerHTML = "Load NNP first.";
-      } else {
-        const startTime = performance.now();
-        nnp.forwardAsync("runtime", {"x0": resizedArray}).then(function(output) {
-          const endTime = performance.now();
-
-          let maxIndex = 0;
-          let maxValue = output["y0"][0];
-          for (let i = 1; i < 1000; ++i) {
-            if (output["y0"][i] > maxValue) {
-              maxValue = output["y0"][i];
-              maxIndex = i;
-            }
-          }
-
-          document.getElementById("result").innerHTML = "Class: " + imagenetClasses[maxIndex];
-          document.getElementById("time").innerHTML = "Exection time: " + (endTime - startTime) + "ms";
-        });
-      }
-    });
+    document.getElementById("time").innerHTML = "Exection time: executing...";
+    document.getElementById("result").innerHTML = "Class: executing...";
+    startTime = performance.now();
+    worker.postMessage({type: "execute", data: imageData});
   }
 
   function createImageData(img) {
