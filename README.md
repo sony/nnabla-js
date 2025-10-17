@@ -13,9 +13,9 @@ A JavaScript runtime for Neural Network Libraries.
 - Preprocess utilities (e.g. image resizing)
 
 ## installation
-```
-$ npm install nnabla-js
-```
+
+nnabla-js is **not available via NPM**.  
+Please clone this repository and build from source
 
 ## example
 Check out more [examples](examples)!
